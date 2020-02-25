@@ -1,0 +1,4 @@
+statefun
+flask
+gunicorn==20.0.4
+

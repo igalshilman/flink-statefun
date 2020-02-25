@@ -1,0 +1,6 @@
+FROM statefun
+
+RUN mkdir -p /opt/statefun/modules/greeter
+ADD module.yaml /opt/statefun/modules/greeter
+
+
