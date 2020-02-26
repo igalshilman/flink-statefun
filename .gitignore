@@ -44,3 +44,4 @@ release/
 venv
 *.pyc
 dist/
+*whl
