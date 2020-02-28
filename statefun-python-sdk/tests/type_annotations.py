@@ -19,7 +19,7 @@
 import unittest
 import typing
 
-from statefun.core import inspect_function_arguments
+from statefun.core import deduce_protobuf_types
 
 
 class TypeNameTestCase(unittest.TestCase):
@@ -28,7 +28,7 @@ class TypeNameTestCase(unittest.TestCase):
         def foo(context, message: int):
             pass
 
-        types = inspect_function_arguments(foo)
+        types = deduce_protobuf_types(foo)
 
         self.assertEqual(types, [int])
 
@@ -36,7 +36,7 @@ class TypeNameTestCase(unittest.TestCase):
         def foo(context, message: typing.Union[int]):
             pass
 
-        types = inspect_function_arguments(foo)
+        types = deduce_protobuf_types(foo)
 
         self.assertEqual(types, [int])
 
@@ -44,7 +44,7 @@ class TypeNameTestCase(unittest.TestCase):
         def foo(context, message: typing.Union[int, str]):
             pass
 
-        types = inspect_function_arguments(foo)
+        types = deduce_protobuf_types(foo)
 
         self.assertEqual(types, [int, str])
 
@@ -52,7 +52,7 @@ class TypeNameTestCase(unittest.TestCase):
         def foo(context, message):
             pass
 
-        types = inspect_function_arguments(foo)
+        types = deduce_protobuf_types(foo)
 
         print(types)
         self.assertTrue(types is None)
