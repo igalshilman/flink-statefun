@@ -87,12 +87,12 @@ def parse_typename(typename):
     return namespace, type
 
 
-def inspect_function_arguments(fn):
+def deduce_protobuf_types(fn):
     spec = inspect.getfullargspec(fn)
     if not spec:
         return None
     if len(spec.args) != 2:
-        raise TypeError("A stateful function must have two arguments a context and a message.")
+        raise TypeError("A stateful function must have two arguments: a context and a message. but got ", spec.args)
     message_arg_name = spec.args[1]  # has to be the second element
     if message_arg_name not in spec.annotations:
         return None
@@ -137,7 +137,8 @@ class StatefulFunctions:
         if fun is None:
             raise ValueError("function instance must be provided")
         namespace, type = parse_typename(typename)
-        self.functions[(namespace, type)] = StatefulFunction(fun)
+        expected_messages = deduce_protobuf_types(fun)
+        self.functions[(namespace, type)] = StatefulFunction(fun, expected_messages)
 
     def bind(self, typename):
         """wraps a StatefulFunction instance with a given namespace and type.
