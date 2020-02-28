@@ -141,10 +141,28 @@ class BatchContext(object):
     # --------------------------------------------------------------------------------------
 
     def send(self, typename: str, id: str, message: Any):
+        """
+        Send a message to a function of type and id.
+
+        :param typename: the target function type name, for example: "org.apache.flink.statefun/greeter"
+        :param id: the id of the target function
+        :param message: the message to send
+        """
+        if not typename:
+            raise ValueError("missing type name")
+        if not id:
+            raise ValueError("missing id")
+        if not message:
+            raise ValueError("missing message")
         out = (typename, id, message)
         self.messages.append(out)
 
     def reply(self, message: Any):
+        """
+        Reply to the sender (assuming there is a sender)
+
+        :param message: the message to reply to.
+        """
         caller = self.caller
         if not caller:
             raise AssertionError(
