@@ -15,7 +15,6 @@
 #  See the License for the specific language governing permissions and
 # limitations under the License.
 ################################################################################
-import typing
 
 from google.protobuf.any_pb2 import Any
 import inspect
