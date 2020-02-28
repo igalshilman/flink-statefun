@@ -18,7 +18,7 @@
 
 import unittest
 
-from statefun.core import StatefulFunctions
+from statefun.core import StatefulFunctions, StatefulFunction
 
 
 class StatefulFunctionsTestCase(unittest.TestCase):
@@ -36,3 +36,13 @@ class StatefulFunctionsTestCase(unittest.TestCase):
 
         self.assertIn(("org.foo", "greeter"), functions.functions)
         self.assertIn(("org.foo", "echo"), functions.functions)
+
+    def test_type_deduction(self):
+        functions = StatefulFunctions()
+
+        @functions.bind("org.foo/greeter")
+        def greeter(context, message: int):
+            pass
+
+        x: StatefulFunction = functions.functions[("org.foo", "greeter")]
+        self.assertEqual(x.known_messages, [int])
