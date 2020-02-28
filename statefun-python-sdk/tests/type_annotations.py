@@ -16,43 +16,43 @@
 # limitations under the License.
 ################################################################################
 
-from typing import Union
-from google.protobuf.any_pb2 import Any
-from .flask_pb2 import SeenCount
-from .flask_pb2 import LoginEvent
+import unittest
+import typing
 
-from statefun import StatefulFunctions
-from statefun import RequestReplyHandler
-
-functions = StatefulFunctions()
+from statefun.core import inspect_function_arguments
 
 
-@functions.bind("k8s-demo/greeter")
-def greet(context, message: LoginEvent):
-    print("Hey " + message.user_name)
+class TypeNameTestCase(unittest.TestCase):
 
+    def test_simple_annotation(self):
+        def foo(context, message: int):
+            pass
 
-handler = RequestReplyHandler(functions)
+        types = inspect_function_arguments(foo)
 
-#
-# Serve the endpoint
-#
+        self.assertEqual(types, [int])
 
-from flask import request
-from flask import make_response
-from flask import app
-from flask import Flask
+    def test_simple_union(self):
+        def foo(context, message: typing.Union[int]):
+            pass
 
-app = Flask(__name__)
+        types = inspect_function_arguments(foo)
 
+        self.assertEqual(types, [int])
 
-@app.route('/statefun', methods=['POST'])
-def handle():
-    response_data = handler(request.data)
-    response = make_response(response_data)
-    response.headers.set('Content-Type', 'application/octet-stream')
-    return response
+    def test_union_annotations(self):
+        def foo(context, message: typing.Union[int, str]):
+            pass
 
+        types = inspect_function_arguments(foo)
 
-if __name__ == "__main__":
-    app.run()
+        self.assertEqual(types, [int, str])
+
+    def test_no_annotations(self):
+        def foo(context, message):
+            pass
+
+        types = inspect_function_arguments(foo)
+
+        print(types)
+        self.assertTrue(types is None)

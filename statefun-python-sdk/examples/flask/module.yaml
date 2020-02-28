@@ -21,10 +21,23 @@ module:
       - function:
           meta:
             kind: http
-            type: com.igal/greeter
+            type: k8s-demo/greeter
           spec:
-            endpoint: localhost:8000/statefun
+            endpoint: http://greeter:8000/statefun
             states:
-              - count
-            maxNumBatchRequests: 100
+              - seen_count
+            maxNumBatchRequests: 500
+      timeout: 2m
+    ingress:
+      meta:
+        type: org.apache.flink.statefun.sdk.kafka/routable-protobuf-kafka-connector
+        id: k8s-demo/names-ingress
+      spec:
+        address: kafka-broker:9092
+        consumerGroupId: my-group-id
+        topics:
+          - topic: names
+            typeUrl: com.googleapis/k8s.demo.LoginEvent
+            targets:
+              - k8s-demo/greeter
 

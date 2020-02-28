@@ -15,8 +15,10 @@
 #  See the License for the specific language governing permissions and
 # limitations under the License.
 ################################################################################
+import typing
 
 from google.protobuf.any_pb2 import Any
+import inspect
 
 
 class SdkAddress(object):
@@ -85,6 +87,47 @@ def parse_typename(typename):
     return namespace, type
 
 
+def inspect_function_arguments(fn):
+    spec = inspect.getfullargspec(fn)
+    if not spec:
+        return None
+    if len(spec.args) != 2:
+        raise TypeError("A stateful function must have two arguments a context and a message.")
+    message_arg_name = spec.args[1]  # has to be the second element
+    if message_arg_name not in spec.annotations:
+        return None
+    message_annotation = spec.annotations[message_arg_name]
+    if inspect.isclass(message_annotation):
+        return [message_annotation]
+    try:
+        # it is not a class, then it is only allowed to be
+        # typing.SpecialForm('Union')
+        return list(message_annotation.__args__)
+    except Exception:
+        return None
+
+
+class StatefulFunction(object):
+
+    def __init__(self, fun, expected_messages=None):
+        if expected_messages is None:
+            self.known_messages = None
+        else:
+            self.known_messages = expected_messages[:]
+        self.func = fun
+
+    def unpack_any(self, any: Any):
+        if self.known_messages is None:
+            return None
+        for known_message in self.known_messages:
+            if any.Is(known_message):
+                value = known_message()
+                any.Unpack(value)
+                return value
+
+        raise ValueError("Unknown message type " + any.type_url)
+
+
 class StatefulFunctions:
     def __init__(self):
         self.functions = {}
@@ -94,7 +137,7 @@ class StatefulFunctions:
         if fun is None:
             raise ValueError("function instance must be provided")
         namespace, type = parse_typename(typename)
-        self.functions[(namespace, type)] = fun
+        self.functions[(namespace, type)] = StatefulFunction(fun)
 
     def bind(self, typename):
         """wraps a StatefulFunction instance with a given namespace and type.

@@ -18,6 +18,7 @@
 
 
 from statefun.core import SdkAddress
+from statefun.core import StatefulFunction
 from statefun.core import AnyStateHandle
 from statefun.core import parse_typename
 
@@ -86,10 +87,15 @@ class RequestReplyHandler:
                 mutation.state_value = handle.bytes()
 
     @staticmethod
-    def invoke_batch(batch, context, target_function):
+    def invoke_batch(batch, context, target_function: StatefulFunction):
+        fun = target_function.func
         for invocation in batch:
             context.prepare(invocation)
-            target_function(context, invocation.argument)
+            unpacked = target_function.unpack_any(invocation.argument)
+            if not unpacked:
+                fun(context, invocation.argument)
+            else:
+                fun(context, unpacked)
 
 
 class BatchContext(object):
