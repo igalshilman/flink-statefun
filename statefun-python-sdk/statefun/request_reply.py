@@ -15,6 +15,7 @@
 #  See the License for the specific language governing permissions and
 # limitations under the License.
 ################################################################################
+from google.protobuf.any_pb2 import Any
 
 from statefun.core import SdkAddress
 from statefun.core import StatefulFunction
@@ -24,8 +25,6 @@ from statefun.core import parse_typename
 # generated function protocol
 from statefun.request_reply_pb2 import FromFunction
 from statefun.request_reply_pb2 import ToFunction
-
-from google.protobuf.any_pb2 import Any
 
 
 class RequestReplyHandler:
@@ -70,11 +69,7 @@ class RequestReplyHandler:
             outgoing.target.namespace = namespace
             outgoing.target.type = type
             outgoing.target.id = id
-
-            if isinstance(message, Any):
-                outgoing.argument.CopyFrom(message)
-            else:
-                outgoing.argument.Pack(message)
+            outgoing.argument.CopyFrom(message)
 
     @staticmethod
     def add_mutations(context, invocation_result):
@@ -145,11 +140,11 @@ class BatchContext(object):
     # messages
     # --------------------------------------------------------------------------------------
 
-    def send(self, typename, id, message):
+    def send(self, typename: str, id: str, message: Any):
         out = (typename, id, message)
         self.messages.append(out)
 
-    def reply(self, message):
+    def reply(self, message: Any):
         caller = self.caller
         if not caller:
             raise AssertionError(
