@@ -16,7 +16,6 @@
 # limitations under the License.
 ################################################################################
 
-
 from statefun.core import SdkAddress
 from statefun.core import StatefulFunction
 from statefun.core import AnyStateHandle
@@ -25,6 +24,8 @@ from statefun.core import parse_typename
 # generated function protocol
 from statefun.request_reply_pb2 import FromFunction
 from statefun.request_reply_pb2 import ToFunction
+
+from google.protobuf.any_pb2 import Any
 
 
 class RequestReplyHandler:
@@ -70,7 +71,10 @@ class RequestReplyHandler:
             outgoing.target.type = type
             outgoing.target.id = id
 
-            outgoing.argument.CopyFrom(message)
+            if isinstance(message, Any):
+                outgoing.argument.CopyFrom(message)
+            else:
+                outgoing.argument.Pack(message)
 
     @staticmethod
     def add_mutations(context, invocation_result):
