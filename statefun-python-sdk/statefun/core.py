@@ -70,6 +70,26 @@ class AnyStateHandle(object):
         self.modified = True
 
 
+class StatefulFunction(object):
+
+    def __init__(self, fun, expected_messages=None):
+        if expected_messages is None:
+            self.known_messages = None
+        else:
+            self.known_messages = expected_messages[:]
+        self.func = fun
+
+    def unpack_any(self, any: Any):
+        if self.known_messages is None:
+            return None
+        for known_message in self.known_messages:
+            if any.Is(known_message):
+                value = known_message()
+                any.Unpack(value)
+                return value
+
+        raise ValueError("Unknown message type " + any.type_url)
+
 def parse_typename(typename):
     """parses a string of type namespace/type into a tuple of (namespace, type)"""
     if typename is None:
@@ -105,26 +125,6 @@ def deduce_protobuf_types(fn):
     except Exception:
         return None
 
-
-class StatefulFunction(object):
-
-    def __init__(self, fun, expected_messages=None):
-        if expected_messages is None:
-            self.known_messages = None
-        else:
-            self.known_messages = expected_messages[:]
-        self.func = fun
-
-    def unpack_any(self, any: Any):
-        if self.known_messages is None:
-            return None
-        for known_message in self.known_messages:
-            if any.Is(known_message):
-                value = known_message()
-                any.Unpack(value)
-                return value
-
-        raise ValueError("Unknown message type " + any.type_url)
 
 
 class StatefulFunctions:
