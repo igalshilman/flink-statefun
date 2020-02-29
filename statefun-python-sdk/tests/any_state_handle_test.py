@@ -68,3 +68,7 @@ class AnyHandleTestCase(unittest.TestCase):
         handle = AnyStateHandle(handle.bytes())
 
         self.assertEqual(handle.value.type_url, "com/world")
+
+    def test_missing_value(self):
+        handle = AnyStateHandle(None)
+        self.assertTrue(True)

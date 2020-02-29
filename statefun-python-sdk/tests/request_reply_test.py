@@ -103,7 +103,6 @@ class RequestReplyTestCase(unittest.TestCase):
             context.state('seen').pack(seen)
             context.pack_and_reply(seen)
 
-
             any = Any()
             any.type_url = 'type.googleapis.com/k8s.demo.SeenCount'
             context.send("bar.baz/foo", "12345", any)

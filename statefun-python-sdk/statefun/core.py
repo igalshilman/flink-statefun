@@ -35,9 +35,7 @@ class SdkAddress(object):
 
 class AnyStateHandle(object):
     def __init__(self, any_bytes):
-        any = Any()
-        any.ParseFromString(any_bytes)
-        self.any = any
+        self.any = None
         self.value_bytes = any_bytes
         self.modified = False
         self.deleted = False
@@ -51,9 +49,9 @@ class AnyStateHandle(object):
             return self.value_bytes
 
     def unpack(self, into_class):
-        if self.any:
+        if self.value:
             into_ref = into_class()
-            self.any.Unpack(into_ref)
+            self.value.Unpack(into_ref)
             return into_ref
         else:
             return None
@@ -66,12 +64,21 @@ class AnyStateHandle(object):
     @property
     def value(self):
         """returns the current value of this state"""
+        if self.deleted:
+            return None
+        if self.any:
+            return self.any
+        if not self.value_bytes:
+            raise ValueError("Can't deserialize Any. missing bytes")
+        self.any = Any()
+        self.any.ParseFromString(self.value_bytes)
         return self.any
 
     @value.setter
     def value(self, any):
         """updates this value to the supplied value, and also marks this state as modified"""
         self.any = any
+        self.value_bytes = None
         self.modified = True
         self.deleted = False
 
@@ -79,6 +86,7 @@ class AnyStateHandle(object):
     def value(self):
         """marks this state as deleted and also as modified"""
         self.any = None
+        self.value_bytes = None
         self.deleted = True
         self.modified = True
 
