@@ -58,6 +58,11 @@ class AnyStateHandle(object):
         else:
             return None
 
+    def pack(self, message):
+        any = Any()
+        any.Pack(message)
+        self.value = any
+
     @property
     def value(self):
         """returns the current value of this state"""
