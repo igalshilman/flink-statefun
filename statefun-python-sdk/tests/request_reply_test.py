@@ -18,12 +18,13 @@
 
 import unittest
 
+from google.protobuf.json_format import MessageToDict
 from google.protobuf.any_pb2 import Any
 
 from tests.examples_pb2 import LoginEvent, SeenCount
 from statefun.request_reply_pb2 import ToFunction, FromFunction
 from statefun import RequestReplyHandler
-from statefun.core import StatefulFunctions, StatefulFunction
+from statefun.core import StatefulFunctions
 
 
 class InvocationBuilder(object):
@@ -63,13 +64,34 @@ class InvocationBuilder(object):
         address.id = id
 
 
-def register_and_invoke(typename, fn, to: ToFunction) -> FromFunction:
+def round_trip(typename, fn, to: InvocationBuilder) -> dict:
     functions = StatefulFunctions()
     functions.register(typename, fn)
     handler = RequestReplyHandler(functions)
     f = FromFunction()
     f.ParseFromString(handler(to.SerializeToString()))
-    return f
+    return MessageToDict(f, preserving_proto_field_name=True)
+
+
+def json_at(nested_structure: dict, path):
+    try:
+        for next in path:
+            nested_structure = next(nested_structure)
+        return nested_structure
+    except KeyError:
+        return None
+
+
+def key(s: str):
+    return lambda dict: dict[s]
+
+
+def nth(n):
+    return lambda list: list[n]
+
+
+NTH_OUTGOING_MESSAGE = lambda n: [key("invocation_result"), key("outgoing_messages"), nth(n)]
+NTH_STATE_MUTATION = lambda n: [key("invocation_result"), key("state_mutations"), nth(n)]
 
 
 class RequestReplyTestCase(unittest.TestCase):
@@ -77,23 +99,50 @@ class RequestReplyTestCase(unittest.TestCase):
     def test_integration(self):
         def fun(context, message):
             seen = context.state('seen').unpack(SeenCount)
+            seen.seen += 1
+            context.state('seen').pack(seen)
             context.pack_and_reply(seen)
 
+
+            any = Any()
+            any.type_url = 'type.googleapis.com/k8s.demo.SeenCount'
+            context.send("bar.baz/foo", "12345", any)
+
+        #
         # build the invocation
+        #
         builder = InvocationBuilder()
         builder.with_target("org.foo", "greeter", "0")
 
         seen = SeenCount()
         seen.seen = 100
-        builder.with_state("seen")
+        builder.with_state("seen", seen)
 
         arg = LoginEvent()
         arg.user_name = "user-1"
         builder.with_invocation(arg, ("org.foo", "greeter-java", "0"))
 
+        #
         # invoke
-        from_function = register_and_invoke("org.foo/greeter", fun, builder.to_function)
+        #
+        result_json = round_trip("org.foo/greeter", fun, builder)
 
-        # assert the result
-        # print(from_function)
-        self.assertIsNotNone(from_function)
+        # assert first outgoing message
+        first_out_message = json_at(result_json, NTH_OUTGOING_MESSAGE(0))
+        self.assertEqual(first_out_message['target']['namespace'], 'org.foo')
+        self.assertEqual(first_out_message['target']['type'], 'greeter-java')
+        self.assertEqual(first_out_message['target']['id'], '0')
+        self.assertEqual(first_out_message['argument']['@type'], 'type.googleapis.com/k8s.demo.SeenCount')
+
+        # assert second outgoing message
+        second_out_message = json_at(result_json, NTH_OUTGOING_MESSAGE(1))
+        self.assertEqual(second_out_message['target']['namespace'], 'bar.baz')
+        self.assertEqual(second_out_message['target']['type'], 'foo')
+        self.assertEqual(second_out_message['target']['id'], '12345')
+        self.assertEqual(second_out_message['argument']['@type'], 'type.googleapis.com/k8s.demo.SeenCount')
+
+        # assert state mutations
+        first_mutation = json_at(result_json, NTH_STATE_MUTATION(0))
+        self.assertEqual(first_mutation['mutation_type'], 'MODIFY')
+        self.assertEqual(first_mutation['state_name'], 'seen')
+        self.assertIsNotNone(first_mutation['state_value'])
