@@ -157,6 +157,23 @@ class BatchContext(object):
         out = (typename, id, message)
         self.messages.append(out)
 
+    def pack_and_send(self, typename: str, id: str, message):
+        """
+        Send a Protobuf message to a function.
+
+        This variant of send, would first pack this message
+        into a google.protobuf.Any and then send it.
+
+        :param typename: the target function type name, for example: "org.apache.flink.statefun/greeter"
+        :param id: the id of the target function
+        :param message: the message to pack into an Any and the send.
+        """
+        if not message:
+            raise ValueError("missing message")
+        any = Any()
+        any.Pack(message)
+        self.send(typename, id, any)
+
     def reply(self, message: Any):
         """
         Reply to the sender (assuming there is a sender)
@@ -168,3 +185,13 @@ class BatchContext(object):
             raise AssertionError(
                 "Unable to reply without a caller. Was this message was sent directly from an ingress?")
         self.send(caller.typename(), caller.identity, message)
+
+    def pack_and_reply(self, message):
+        """
+        Reply to the sender (assuming there is a sender)
+
+        :param message: the message to reply to.
+        """
+        any = Any()
+        any.Pack(message)
+        self.reply(any)
