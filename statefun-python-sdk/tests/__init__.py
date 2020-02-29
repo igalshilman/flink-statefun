@@ -16,6 +16,6 @@
 # limitations under the License.
 ################################################################################
 
-from tests.handles import *
-from tests.typename import *
-from tests.statefuntest import *
+from tests.any_state_handle_test import *
+from tests.typename_test import *
+from tests.statefun_test import *
