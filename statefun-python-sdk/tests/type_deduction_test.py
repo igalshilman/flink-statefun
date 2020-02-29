@@ -22,7 +22,7 @@ import typing
 from statefun.core import deduce_protobuf_types
 
 
-class TypeNameTestCase(unittest.TestCase):
+class TypeDeductionTestCase(unittest.TestCase):
 
     def test_simple_annotation(self):
         def foo(context, message: int):

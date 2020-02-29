@@ -50,6 +50,14 @@ class AnyStateHandle(object):
         else:
             return self.value_bytes
 
+    def unpack(self, into_class):
+        if self.any:
+            into_ref = into_class()
+            self.any.Unpack(into_ref)
+            return into_ref
+        else:
+            return None
+
     @property
     def value(self):
         """returns the current value of this state"""
