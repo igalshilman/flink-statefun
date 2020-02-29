@@ -71,24 +71,23 @@ class AnyStateHandle(object):
 
 
 class StatefulFunction(object):
-
     def __init__(self, fun, expected_messages=None):
-        if expected_messages is None:
-            self.known_messages = None
-        else:
-            self.known_messages = expected_messages[:]
+        self.known_messages = expected_messages[:] if expected_messages else None
         self.func = fun
+        if not fun:
+            raise ValueError("function code is missing.")
 
     def unpack_any(self, any: Any):
         if self.known_messages is None:
             return None
-        for known_message in self.known_messages:
-            if any.Is(known_message):
-                value = known_message()
-                any.Unpack(value)
-                return value
+        for cls in self.known_messages:
+            if any.Is(cls):
+                instance = cls()
+                any.Unpack(instance)
+                return instance
 
         raise ValueError("Unknown message type " + any.type_url)
+
 
 def parse_typename(typename):
     """parses a string of type namespace/type into a tuple of (namespace, type)"""
@@ -107,6 +106,12 @@ def parse_typename(typename):
 
 
 def deduce_protobuf_types(fn):
+    """
+    Try to extract the class names that are attached as the typing annotation.
+
+    :param fn: the function with the annotated parameters.
+    :return: a list of classes or None.
+    """
     spec = inspect.getfullargspec(fn)
     if not spec:
         return None
@@ -124,7 +129,6 @@ def deduce_protobuf_types(fn):
         return list(message_annotation.__args__)
     except Exception:
         return None
-
 
 
 class StatefulFunctions:
