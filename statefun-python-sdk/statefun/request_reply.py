@@ -15,6 +15,8 @@
 #  See the License for the specific language governing permissions and
 # limitations under the License.
 ################################################################################
+from datetime import timedelta
+
 from google.protobuf.any_pb2 import Any
 
 from statefun.core import SdkAddress
@@ -57,6 +59,8 @@ class RequestReplyHandler:
         invocation_result = from_function.invocation_result
         self.add_mutations(context, invocation_result)
         self.add_outgoing_messages(context, invocation_result)
+        self.add_delayed_messages(context, invocation_result)
+        self.add_egress(context, invocation_result)
         return from_function
 
     @staticmethod
@@ -96,6 +100,27 @@ class RequestReplyHandler:
             else:
                 fun(context, unpacked)
 
+    @staticmethod
+    def add_delayed_messages(context, invocation_result):
+        delayed_invocations = invocation_result.delayed_invocations
+        for delay, typename, id, message in context.delayed_messages:
+            outgoing = delayed_invocations.add()
+
+            namespace, type = parse_typename(typename)
+            outgoing.target.namespace = namespace
+            outgoing.target.type = type
+            outgoing.target.id = id
+            outgoing.delay_in_ms = delay
+            outgoing.argument.CopyFrom(message)
+
+    @staticmethod
+    def add_egress(context, invocation_result):
+        outgoing_egresses = invocation_result.outgoing_egresses
+        for typename, message in context.egresses:
+            outgoing = outgoing_egresses.add()
+            outgoing.egress_identifier = typename
+            outgoing.argument.CopyFrom(message)
+
 
 class BatchContext(object):
     def __init__(self, target, states):
@@ -107,6 +132,8 @@ class BatchContext(object):
         self.caller = None
         # outgoing messages
         self.messages = []
+        self.delayed_messages = []
+        self.egresses = []
 
     def prepare(self, invocation):
         """setup per invocation """
@@ -195,3 +222,63 @@ class BatchContext(object):
         any = Any()
         any.Pack(message)
         self.reply(any)
+
+    def send_after(self, delay: timedelta, typename: str, id: str, message: Any):
+        """
+        Send a message to a function of type and id.
+
+        :param delay: the amount of time to wait before sending this message.
+        :param typename: the target function type name, for example: "org.apache.flink.statefun/greeter"
+        :param id: the id of the target function
+        :param message: the message to send
+        """
+        if not delay:
+            raise ValueError("missing delay")
+        if not typename:
+            raise ValueError("missing type name")
+        if not id:
+            raise ValueError("missing id")
+        if not message:
+            raise ValueError("missing message")
+        duration_ms = int(delay.total_seconds() * 1000.0)
+        out = (duration_ms, typename, id, message)
+        self.delayed_messages.append(out)
+
+    def pack_and_send_after(self, delay: timedelta, typename: str, id: str, message):
+        """
+        Send a message to a function of type and id.
+
+        :param delay: the amount of time to wait before sending this message.
+        :param typename: the target function type name, for example: "org.apache.flink.statefun/greeter"
+        :param id: the id of the target function
+        :param message: the message to send
+        """
+        if not message:
+            raise ValueError("missing message")
+        any = Any()
+        any.Pack(message)
+        self.send_after(delay, typename, id, any)
+
+    def send_egress(self, typename, message: Any):
+        """
+        Sends a message to an egress defined by @typename
+        :param typename: an egress identifier of the form <namespace>/<name>
+        :param message: the message to send.
+        """
+        if not typename:
+            raise ValueError("missing type name")
+        if not message:
+            raise ValueError("missing message")
+        self.egresses = (typename, message)
+
+    def pack_and_send_egress(self, typename, message):
+        """
+        Sends a message to an egress defined by @typename
+        :param typename: an egress identifier of the form <namespace>/<name>
+        :param message: the message to send.
+        """
+        if not message:
+            raise ValueError("missing message")
+        any = Any()
+        any.Pack(message)
+        self.send_egress(typename, any)
