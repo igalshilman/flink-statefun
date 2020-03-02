@@ -15,6 +15,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# clean
+rm -f statefun-1.1.0-py3-none-any.whl
+rm -rf __pycache__
+
 # this part would be removed, once statefun will be released to PyPI
 cp ../../dist/statefun-1.1.0-py3-none-any.whl .
 
