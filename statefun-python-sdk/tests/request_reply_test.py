@@ -106,6 +106,10 @@ class RequestReplyTestCase(unittest.TestCase):
             seen.seen += 1
             context.state('seen').pack(seen)
 
+            # regular state access
+            seenAny = context['seen']
+            seenAny.Unpack(seen)
+
             # sending and replying
             context.pack_and_reply(seen)
 
@@ -167,6 +171,4 @@ class RequestReplyTestCase(unittest.TestCase):
         first_egress = json_at(result_json, NTH_EGRESS(0))
         self.assertEqual(first_egress['egress_identifier'], 'foo.bar.baz/my-egress')
         self.assertEqual(first_egress['argument']['@type'], 'type.googleapis.com/k8s.demo.SeenCount')
-
-        print(result_json)
 
