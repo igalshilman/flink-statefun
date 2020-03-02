@@ -17,6 +17,7 @@
 ################################################################################
 
 import unittest
+from datetime import timedelta
 
 from google.protobuf.json_format import MessageToDict
 from google.protobuf.any_pb2 import Any
@@ -92,20 +93,32 @@ def nth(n):
 
 NTH_OUTGOING_MESSAGE = lambda n: [key("invocation_result"), key("outgoing_messages"), nth(n)]
 NTH_STATE_MUTATION = lambda n: [key("invocation_result"), key("state_mutations"), nth(n)]
+NTH_DELAYED_MESSAGE = lambda n: [key("invocation_result"), key("delayed_invocations"), nth(n)]
+NTH_EGRESS = lambda n: [key("invocation_result"), key("outgoing_egresses"), nth(n)]
 
 
 class RequestReplyTestCase(unittest.TestCase):
 
     def test_integration(self):
         def fun(context, message):
+            # state access
             seen = context.state('seen').unpack(SeenCount)
             seen.seen += 1
             context.state('seen').pack(seen)
+
+            # sending and replying
             context.pack_and_reply(seen)
 
             any = Any()
             any.type_url = 'type.googleapis.com/k8s.demo.SeenCount'
             context.send("bar.baz/foo", "12345", any)
+
+            # delayed messages
+            context.send_after(timedelta(hours=1), "night/owl", "1", any)
+
+            # egresses
+            context.send_egress("foo.bar.baz/my-egress", any)
+            context.pack_and_send_egress("foo.bar.baz/my-egress", seen)
 
         #
         # build the invocation
@@ -145,3 +158,15 @@ class RequestReplyTestCase(unittest.TestCase):
         self.assertEqual(first_mutation['mutation_type'], 'MODIFY')
         self.assertEqual(first_mutation['state_name'], 'seen')
         self.assertIsNotNone(first_mutation['state_value'])
+
+        # assert delayed
+        first_delayed = json_at(result_json, NTH_DELAYED_MESSAGE(0))
+        self.assertEqual(int(first_delayed['delay_in_ms']), 1000 * 60 * 60)
+
+        # assert egresses
+        first_egress = json_at(result_json, NTH_EGRESS(0))
+        self.assertEqual(first_egress['egress_identifier'], 'foo.bar.baz/my-egress')
+        self.assertEqual(first_egress['argument']['@type'], 'type.googleapis.com/k8s.demo.SeenCount')
+
+        print(result_json)
+
