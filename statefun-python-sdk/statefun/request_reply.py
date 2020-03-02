@@ -269,7 +269,7 @@ class BatchContext(object):
             raise ValueError("missing type name")
         if not message:
             raise ValueError("missing message")
-        self.egresses = (typename, message)
+        self.egresses.append((typename, message))
 
     def pack_and_send_egress(self, typename, message):
         """
