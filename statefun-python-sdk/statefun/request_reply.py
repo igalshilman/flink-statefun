@@ -118,7 +118,10 @@ class RequestReplyHandler:
         outgoing_egresses = invocation_result.outgoing_egresses
         for typename, message in context.egresses:
             outgoing = outgoing_egresses.add()
-            outgoing.egress_identifier = typename
+
+            namespace, type = parse_typename(typename)
+            outgoing.egress_namespace = namespace
+            outgoing.egress_type = type
             outgoing.argument.CopyFrom(message)
 
 

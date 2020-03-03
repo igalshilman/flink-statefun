@@ -169,6 +169,7 @@ class RequestReplyTestCase(unittest.TestCase):
 
         # assert egresses
         first_egress = json_at(result_json, NTH_EGRESS(0))
-        self.assertEqual(first_egress['egress_identifier'], 'foo.bar.baz/my-egress')
+        self.assertEqual(first_egress['egress_namespace'], 'foo.bar.baz')
+        self.assertEqual(first_egress['egress_type'], 'my-egress')
         self.assertEqual(first_egress['argument']['@type'], 'type.googleapis.com/k8s.demo.SeenCount')
 

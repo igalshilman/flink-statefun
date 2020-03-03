@@ -19,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   package='org.apache.flink.statefun.flink.core.polyglot',
   syntax='proto3',
   serialized_options=b'\n7org.apache.flink.statefun.flink.core.polyglot.generatedP\001',
-  serialized_pb=b'\n\x13request-reply.proto\x12-org.apache.flink.statefun.flink.core.polyglot\x1a\x19google/protobuf/any.proto\"6\n\x07\x41\x64\x64ress\x12\x11\n\tnamespace\x18\x01 \x01(\t\x12\x0c\n\x04type\x18\x02 \x01(\t\x12\n\n\x02id\x18\x03 \x01(\t\"\xcf\x04\n\nToFunction\x12\x66\n\ninvocation\x18\x64 \x01(\x0b\x32P.org.apache.flink.statefun.flink.core.polyglot.ToFunction.InvocationBatchRequestH\x00\x1a\x39\n\x0ePersistedValue\x12\x12\n\nstate_name\x18\x01 \x01(\t\x12\x13\n\x0bstate_value\x18\x02 \x01(\x0c\x1a|\n\nInvocation\x12\x46\n\x06\x63\x61ller\x18\x01 \x01(\x0b\x32\x36.org.apache.flink.statefun.flink.core.polyglot.Address\x12&\n\x08\x61rgument\x18\x02 \x01(\x0b\x32\x14.google.protobuf.Any\x1a\x94\x02\n\x16InvocationBatchRequest\x12\x46\n\x06target\x18\x01 \x01(\x0b\x32\x36.org.apache.flink.statefun.flink.core.polyglot.Address\x12W\n\x05state\x18\x02 \x03(\x0b\x32H.org.apache.flink.statefun.flink.core.polyglot.ToFunction.PersistedValue\x12Y\n\x0binvocations\x18\x03 \x03(\x0b\x32\x44.org.apache.flink.statefun.flink.core.polyglot.ToFunction.InvocationB\t\n\x07request\"\x91\t\n\x0c\x46romFunction\x12k\n\x11invocation_result\x18\x64 \x01(\x0b\x32N.org.apache.flink.statefun.flink.core.polyglot.FromFunction.InvocationResponseH\x00\x1a\xe1\x01\n\x16PersistedValueMutation\x12v\n\rmutation_type\x18\x01 \x01(\x0e\x32_.org.apache.flink.statefun.flink.core.polyglot.FromFunction.PersistedValueMutation.MutationType\x12\x12\n\nstate_name\x18\x02 \x01(\t\x12\x13\n\x0bstate_value\x18\x03 \x01(\x0c\"&\n\x0cMutationType\x12\n\n\x06\x44\x45LETE\x10\x00\x12\n\n\x06MODIFY\x10\x01\x1a|\n\nInvocation\x12\x46\n\x06target\x18\x01 \x01(\x0b\x32\x36.org.apache.flink.statefun.flink.core.polyglot.Address\x12&\n\x08\x61rgument\x18\x02 \x01(\x0b\x32\x14.google.protobuf.Any\x1a\x98\x01\n\x11\x44\x65layedInvocation\x12\x13\n\x0b\x64\x65lay_in_ms\x18\x01 \x01(\x03\x12\x46\n\x06target\x18\x02 \x01(\x0b\x32\x36.org.apache.flink.statefun.flink.core.polyglot.Address\x12&\n\x08\x61rgument\x18\x03 \x01(\x0b\x32\x14.google.protobuf.Any\x1aR\n\rEgressMessage\x12\x19\n\x11\x65gress_identifier\x18\x01 \x01(\t\x12&\n\x08\x61rgument\x18\x02 \x01(\x0b\x32\x14.google.protobuf.Any\x1a\xb6\x03\n\x12InvocationResponse\x12k\n\x0fstate_mutations\x18\x01 \x03(\x0b\x32R.org.apache.flink.statefun.flink.core.polyglot.FromFunction.PersistedValueMutation\x12\x61\n\x11outgoing_messages\x18\x02 \x03(\x0b\x32\x46.org.apache.flink.statefun.flink.core.polyglot.FromFunction.Invocation\x12j\n\x13\x64\x65layed_invocations\x18\x03 \x03(\x0b\x32M.org.apache.flink.statefun.flink.core.polyglot.FromFunction.DelayedInvocation\x12\x64\n\x11outgoing_egresses\x18\x04 \x03(\x0b\x32I.org.apache.flink.statefun.flink.core.polyglot.FromFunction.EgressMessageB\n\n\x08responseB;\n7org.apache.flink.statefun.flink.core.polyglot.generatedP\x01\x62\x06proto3'
+  serialized_pb=b'\n\x13request-reply.proto\x12-org.apache.flink.statefun.flink.core.polyglot\x1a\x19google/protobuf/any.proto\"6\n\x07\x41\x64\x64ress\x12\x11\n\tnamespace\x18\x01 \x01(\t\x12\x0c\n\x04type\x18\x02 \x01(\t\x12\n\n\x02id\x18\x03 \x01(\t\"\xcf\x04\n\nToFunction\x12\x66\n\ninvocation\x18\x64 \x01(\x0b\x32P.org.apache.flink.statefun.flink.core.polyglot.ToFunction.InvocationBatchRequestH\x00\x1a\x39\n\x0ePersistedValue\x12\x12\n\nstate_name\x18\x01 \x01(\t\x12\x13\n\x0bstate_value\x18\x02 \x01(\x0c\x1a|\n\nInvocation\x12\x46\n\x06\x63\x61ller\x18\x01 \x01(\x0b\x32\x36.org.apache.flink.statefun.flink.core.polyglot.Address\x12&\n\x08\x61rgument\x18\x02 \x01(\x0b\x32\x14.google.protobuf.Any\x1a\x94\x02\n\x16InvocationBatchRequest\x12\x46\n\x06target\x18\x01 \x01(\x0b\x32\x36.org.apache.flink.statefun.flink.core.polyglot.Address\x12W\n\x05state\x18\x02 \x03(\x0b\x32H.org.apache.flink.statefun.flink.core.polyglot.ToFunction.PersistedValue\x12Y\n\x0binvocations\x18\x03 \x03(\x0b\x32\x44.org.apache.flink.statefun.flink.core.polyglot.ToFunction.InvocationB\t\n\x07request\"\xa5\t\n\x0c\x46romFunction\x12k\n\x11invocation_result\x18\x64 \x01(\x0b\x32N.org.apache.flink.statefun.flink.core.polyglot.FromFunction.InvocationResponseH\x00\x1a\xe1\x01\n\x16PersistedValueMutation\x12v\n\rmutation_type\x18\x01 \x01(\x0e\x32_.org.apache.flink.statefun.flink.core.polyglot.FromFunction.PersistedValueMutation.MutationType\x12\x12\n\nstate_name\x18\x02 \x01(\t\x12\x13\n\x0bstate_value\x18\x03 \x01(\x0c\"&\n\x0cMutationType\x12\n\n\x06\x44\x45LETE\x10\x00\x12\n\n\x06MODIFY\x10\x01\x1a|\n\nInvocation\x12\x46\n\x06target\x18\x01 \x01(\x0b\x32\x36.org.apache.flink.statefun.flink.core.polyglot.Address\x12&\n\x08\x61rgument\x18\x02 \x01(\x0b\x32\x14.google.protobuf.Any\x1a\x98\x01\n\x11\x44\x65layedInvocation\x12\x13\n\x0b\x64\x65lay_in_ms\x18\x01 \x01(\x03\x12\x46\n\x06target\x18\x02 \x01(\x0b\x32\x36.org.apache.flink.statefun.flink.core.polyglot.Address\x12&\n\x08\x61rgument\x18\x03 \x01(\x0b\x32\x14.google.protobuf.Any\x1a\x66\n\rEgressMessage\x12\x18\n\x10\x65gress_namespace\x18\x01 \x01(\t\x12\x13\n\x0b\x65gress_type\x18\x02 \x01(\t\x12&\n\x08\x61rgument\x18\x03 \x01(\x0b\x32\x14.google.protobuf.Any\x1a\xb6\x03\n\x12InvocationResponse\x12k\n\x0fstate_mutations\x18\x01 \x03(\x0b\x32R.org.apache.flink.statefun.flink.core.polyglot.FromFunction.PersistedValueMutation\x12\x61\n\x11outgoing_messages\x18\x02 \x03(\x0b\x32\x46.org.apache.flink.statefun.flink.core.polyglot.FromFunction.Invocation\x12j\n\x13\x64\x65layed_invocations\x18\x03 \x03(\x0b\x32M.org.apache.flink.statefun.flink.core.polyglot.FromFunction.DelayedInvocation\x12\x64\n\x11outgoing_egresses\x18\x04 \x03(\x0b\x32I.org.apache.flink.statefun.flink.core.polyglot.FromFunction.EgressMessageB\n\n\x08responseB;\n7org.apache.flink.statefun.flink.core.polyglot.generatedP\x01\x62\x06proto3'
   ,
   dependencies=[google_dot_protobuf_dot_any__pb2.DESCRIPTOR,])
 
@@ -379,15 +379,22 @@ _FROMFUNCTION_EGRESSMESSAGE = _descriptor.Descriptor(
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='egress_identifier', full_name='org.apache.flink.statefun.flink.core.polyglot.FromFunction.EgressMessage.egress_identifier', index=0,
+      name='egress_namespace', full_name='org.apache.flink.statefun.flink.core.polyglot.FromFunction.EgressMessage.egress_namespace', index=0,
       number=1, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='argument', full_name='org.apache.flink.statefun.flink.core.polyglot.FromFunction.EgressMessage.argument', index=1,
-      number=2, type=11, cpp_type=10, label=1,
+      name='egress_type', full_name='org.apache.flink.statefun.flink.core.polyglot.FromFunction.EgressMessage.egress_type', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='argument', full_name='org.apache.flink.statefun.flink.core.polyglot.FromFunction.EgressMessage.argument', index=2,
+      number=3, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
@@ -405,7 +412,7 @@ _FROMFUNCTION_EGRESSMESSAGE = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=1382,
-  serialized_end=1464,
+  serialized_end=1484,
 )
 
 _FROMFUNCTION_INVOCATIONRESPONSE = _descriptor.Descriptor(
@@ -455,8 +462,8 @@ _FROMFUNCTION_INVOCATIONRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1467,
-  serialized_end=1905,
+  serialized_start=1487,
+  serialized_end=1925,
 )
 
 _FROMFUNCTION = _descriptor.Descriptor(
@@ -489,7 +496,7 @@ _FROMFUNCTION = _descriptor.Descriptor(
       index=0, containing_type=None, fields=[]),
   ],
   serialized_start=748,
-  serialized_end=1917,
+  serialized_end=1937,
 )
 
 _TOFUNCTION_PERSISTEDVALUE.containing_type = _TOFUNCTION
