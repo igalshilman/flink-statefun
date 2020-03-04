@@ -28,16 +28,29 @@ module:
               - seen_count
             maxNumBatchRequests: 500
       timeout: 2m
-    ingress:
-      meta:
-        type: org.apache.flink.statefun.sdk.kafka/routable-protobuf-kafka-connector
-        id: k8s-demo/names-ingress
-      spec:
-        address: kafka-broker:9092
-        consumerGroupId: my-group-id
-        topics:
-          - topic: names
-            typeUrl: com.googleapis/k8s.demo.LoginEvent
-            targets:
-              - k8s-demo/greeter
-
+    ingresses:
+      - ingress:
+          meta:
+            type: org.apache.flink.statefun.sdk.kafka/routable-protobuf-kafka-connector
+            id: k8s-demo/names-ingress
+          spec:
+            address: kafka-broker:9092
+            consumerGroupId: my-group-id
+            topics:
+              - topic: names
+                typeUrl: com.googleapis/k8s.demo.LoginEvent
+                targets:
+                  - k8s-demo/greeter
+    egresses:
+      - egress:
+          meta:
+            type: org.apache.flink.statefun.sdk.kafka/generic-kafka-egress
+            id: k8s-demo/greets-egress
+          spec:
+            address: kafka-broker:9092
+            deliverySemantic:
+              type: exactly-once
+              transactionTimeoutMillis: 100000
+            properties:
+              - foo.config: bar
+                
