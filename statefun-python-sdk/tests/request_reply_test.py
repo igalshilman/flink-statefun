@@ -25,7 +25,7 @@ from google.protobuf.any_pb2 import Any
 from tests.examples_pb2 import LoginEvent, SeenCount
 from statefun.request_reply_pb2 import ToFunction, FromFunction
 from statefun import RequestReplyHandler
-from statefun.core import StatefulFunctions
+from statefun.core import StatefulFunctions, kafka_egress_builder
 
 
 class InvocationBuilder(object):
@@ -124,6 +124,10 @@ class RequestReplyTestCase(unittest.TestCase):
             context.send_egress("foo.bar.baz/my-egress", any)
             context.pack_and_send_egress("foo.bar.baz/my-egress", seen)
 
+            # kafka egress
+            context.pack_and_send_egress("sdk/kafka",
+                                         kafka_egress_builder(topic="hello", key=u"hello world", value=seen))
+
         #
         # build the invocation
         #
@@ -172,4 +176,3 @@ class RequestReplyTestCase(unittest.TestCase):
         self.assertEqual(first_egress['egress_namespace'], 'foo.bar.baz')
         self.assertEqual(first_egress['egress_type'], 'my-egress')
         self.assertEqual(first_egress['argument']['@type'], 'type.googleapis.com/k8s.demo.SeenCount')
-

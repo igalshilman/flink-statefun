@@ -19,6 +19,8 @@
 from google.protobuf.any_pb2 import Any
 import inspect
 
+from statefun.kafka_egress_pb2 import KafkaProducerRecord
+
 
 class SdkAddress(object):
     def __init__(self, namespace, type, identity):
@@ -185,3 +187,25 @@ class StatefulFunctions:
 
     def for_type(self, namespace, type):
         return self.functions[(namespace, type)]
+
+
+def kafka_egress_builder(topic: str, key: str, value):
+    """
+    Build a ProtobufMessage that can be emitted to a Protobuf based egress.
+
+    :param topic: The kafka detention topic for that record
+    :param key: the utf8 encoded string key to produce
+    :param value: the Protobuf value to produce
+    :return: A Protobuf message represents the record to be produced via the kafka procurer.
+    """
+    if not topic:
+        raise ValueError("A destination Kafka topic is missing")
+    if not key:
+        raise ValueError("A key is missing")
+    if not value:
+        raise ValueError("Missing value")
+    record = KafkaProducerRecord()
+    record.topic = topic
+    record.key = key
+    record.value_bytes = value.SerializeToString()
+    return record
