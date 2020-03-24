@@ -72,7 +72,7 @@ def round_trip(typename, fn, to: InvocationBuilder) -> dict:
     handler = RequestReplyHandler(functions)
     f = FromFunction()
     f.ParseFromString(handler(to.SerializeToString()))
-    return MessageToDict(f, preserving_proto_field_name=True)
+    return MessageToDict(f, preserving_proto_field_name=True, including_default_value_fields=True)
 
 
 def json_at(nested_structure: dict, path):
@@ -110,6 +110,8 @@ class RequestReplyTestCase(unittest.TestCase):
             # regular state access
             seenAny = context['seen']
             seenAny.Unpack(seen)
+
+            del context['to-delete']
 
             # sending and replying
             context.pack_and_reply(seen)
@@ -153,6 +155,7 @@ class RequestReplyTestCase(unittest.TestCase):
         seen = SeenCount()
         seen.seen = 100
         builder.with_state("seen", seen)
+        builder.with_state("to-delete")
 
         arg = LoginEvent()
         arg.user_name = "user-1"
@@ -182,6 +185,10 @@ class RequestReplyTestCase(unittest.TestCase):
         self.assertEqual(first_mutation['mutation_type'], 'MODIFY')
         self.assertEqual(first_mutation['state_name'], 'seen')
         self.assertIsNotNone(first_mutation['state_value'])
+
+        second_mutation = json_at(result_json, NTH_STATE_MUTATION(1))
+        self.assertEqual(second_mutation['mutation_type'], 'DELETE')
+        self.assertEqual(second_mutation['state_name'], 'to-delete')
 
         # assert delayed
         first_delayed = json_at(result_json, NTH_DELAYED_MESSAGE(0))
