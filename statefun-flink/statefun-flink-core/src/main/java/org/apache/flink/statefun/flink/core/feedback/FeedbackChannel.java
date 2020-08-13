@@ -20,7 +20,6 @@ package org.apache.flink.statefun.flink.core.feedback;
 import java.io.Closeable;
 import java.util.Deque;
 import java.util.Objects;
-import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.flink.util.IOUtils;
 
@@ -70,7 +69,7 @@ public final class FeedbackChannel<T> implements Closeable {
    * @param consumer the feedback events consumer.
    * @param executor the executor to schedule feedback consumption on.
    */
-  void registerConsumer(final FeedbackConsumer<T> consumer, Executor executor) {
+  void registerConsumer(final FeedbackConsumer<T> consumer, PriorityAwareExecutor executor) {
     Objects.requireNonNull(consumer);
 
     ConsumerTask<T> consumerTask = new ConsumerTask<>(executor, consumer, queue);
@@ -100,18 +99,19 @@ public final class FeedbackChannel<T> implements Closeable {
   }
 
   private static final class ConsumerTask<T> implements Runnable, Closeable {
-    private final Executor executor;
+    private final PriorityAwareExecutor executor;
     private final FeedbackConsumer<T> consumer;
     private final FeedbackQueue<T> queue;
 
-    ConsumerTask(Executor executor, FeedbackConsumer<T> consumer, FeedbackQueue<T> queue) {
+    ConsumerTask(
+        PriorityAwareExecutor executor, FeedbackConsumer<T> consumer, FeedbackQueue<T> queue) {
       this.executor = Objects.requireNonNull(executor);
       this.consumer = Objects.requireNonNull(consumer);
       this.queue = Objects.requireNonNull(queue);
     }
 
     void scheduleDrainAll() {
-      executor.execute(this);
+      executor.executeWithOperatorsPriority(this);
     }
 
     @Override

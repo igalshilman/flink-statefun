@@ -21,6 +21,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 
 import java.util.ArrayList;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -55,7 +56,7 @@ public class FeedbackChannelTest {
 
     ArrayList<String> results = new ArrayList<>();
 
-    channel.registerConsumer(results::add, Runnable::run);
+    channel.registerConsumer(results::add, sameThreadExecutor());
 
     assertThat(results, contains("hello", "world"));
   }
@@ -110,7 +111,7 @@ public class FeedbackChannelTest {
               return t;
             });
 
-    channel.registerConsumer(unused -> consumed[0]++, executor);
+    channel.registerConsumer(unused -> consumed[0]++, wrap(executor));
     //
     // producer
     //
@@ -120,5 +121,23 @@ public class FeedbackChannelTest {
     channel.close();
 
     return consumed[0];
+  }
+
+  private static PriorityAwareExecutor wrap(Executor executor) {
+    return new PriorityAwareExecutor() {
+      @Override
+      public void executeWithHighestPriority(Runnable command) {
+        executor.execute(command);
+      }
+
+      @Override
+      public void executeWithOperatorsPriority(Runnable command) {
+        executor.execute(command);
+      }
+    };
+  }
+
+  private static PriorityAwareExecutor sameThreadExecutor() {
+    return wrap(Runnable::run);
   }
 }

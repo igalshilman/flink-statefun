@@ -19,13 +19,12 @@ package org.apache.flink.statefun.flink.core.feedback;
 
 import java.util.Objects;
 import java.util.OptionalLong;
-import java.util.concurrent.Executor;
 import org.apache.flink.api.common.typeutils.TypeSerializer;
 import org.apache.flink.runtime.io.disk.iomanager.IOManager;
 import org.apache.flink.runtime.state.KeyGroupStatePartitionStreamProvider;
 import org.apache.flink.runtime.state.StateInitializationContext;
 import org.apache.flink.runtime.state.StateSnapshotContext;
-import org.apache.flink.statefun.flink.core.common.MailboxExecutorFacade;
+import org.apache.flink.statefun.flink.core.common.PriorityAwareMailboxExecutorFacade;
 import org.apache.flink.statefun.flink.core.common.SerializableFunction;
 import org.apache.flink.statefun.flink.core.logger.Loggers;
 import org.apache.flink.statefun.flink.core.logger.UnboundedFeedbackLogger;
@@ -36,6 +35,7 @@ import org.apache.flink.streaming.api.operators.MailboxExecutor;
 import org.apache.flink.streaming.api.operators.OneInputStreamOperator;
 import org.apache.flink.streaming.runtime.streamrecord.StreamRecord;
 import org.apache.flink.streaming.runtime.tasks.ProcessingTimeService;
+import org.apache.flink.streaming.runtime.tasks.mailbox.TaskMailbox;
 import org.apache.flink.util.IOUtils;
 
 public final class FeedbackUnionOperator<T> extends AbstractStreamOperator<T>
@@ -136,7 +136,9 @@ public final class FeedbackUnionOperator<T> extends AbstractStreamOperator<T>
     // now we can start processing new messages. We do so by registering ourselves as a
     // FeedbackConsumer
     //
-    registerFeedbackConsumer(new MailboxExecutorFacade(mailboxExecutor, "Feedback Consumer"));
+    registerFeedbackConsumer(
+        new PriorityAwareMailboxExecutorFacade(
+            mailboxExecutor, obtainHighestPriorityMailboxExecutor(), "Feedback Consumer"));
   }
 
   @Override
@@ -167,7 +169,7 @@ public final class FeedbackUnionOperator<T> extends AbstractStreamOperator<T>
     closedOrDisposed = true;
   }
 
-  private void registerFeedbackConsumer(Executor mailboxExecutor) {
+  private void registerFeedbackConsumer(PriorityAwareExecutor mailboxExecutor) {
     final SubtaskFeedbackKey<T> key =
         feedbackKey.withSubTaskIndex(getRuntimeContext().getIndexOfThisSubtask());
     FeedbackChannelBroker broker = FeedbackChannelBroker.get();
@@ -178,5 +180,9 @@ public final class FeedbackUnionOperator<T> extends AbstractStreamOperator<T>
   private void sendDownstream(T element) {
     reusable.replace(element);
     output.collect(reusable);
+  }
+
+  private MailboxExecutor obtainHighestPriorityMailboxExecutor() {
+    return getContainingTask().getMailboxExecutorFactory().createExecutor(TaskMailbox.MAX_PRIORITY);
   }
 }
