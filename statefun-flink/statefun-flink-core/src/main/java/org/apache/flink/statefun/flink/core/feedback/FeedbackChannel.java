@@ -22,6 +22,7 @@ import java.util.Deque;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.flink.util.IOUtils;
+import org.apache.flink.util.Preconditions;
 
 /** Single producer, single consumer channel. */
 public final class FeedbackChannel<T> implements Closeable {
@@ -61,6 +62,21 @@ public final class FeedbackChannel<T> implements Closeable {
     }
     // the queue was previously empty, and now it is not, therefore we schedule a drain.
     consumer.scheduleDrainAll();
+  }
+
+  /** Adds the barrier sentinel into this channel. */
+  public void putBarrierSentinel(T value) {
+    // A checkpoint barrier needs to be introduced into the underlying feedback queue.
+    // Unlike the regular put method, this method would always schedule a drain operation,
+    // and we do it with the highest priority.
+    queue.addAndCheckIfWasEmpty(value);
+
+    final ConsumerTask<T> consumer = consumerRef.get();
+    Preconditions.checkState(
+        consumer != null,
+        "Processing a checkpoint barrier, before the downstream operator finished it's open method.");
+
+    consumer.scheduleHighPriorityDrainAll();
   }
 
   /**
@@ -112,6 +128,10 @@ public final class FeedbackChannel<T> implements Closeable {
 
     void scheduleDrainAll() {
       executor.executeWithOperatorsPriority(this);
+    }
+
+    void scheduleHighPriorityDrainAll() {
+      executor.executeWithHighestPriority(this);
     }
 
     @Override
