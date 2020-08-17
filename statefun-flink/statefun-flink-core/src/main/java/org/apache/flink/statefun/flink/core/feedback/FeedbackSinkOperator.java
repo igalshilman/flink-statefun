@@ -83,7 +83,7 @@ public final class FeedbackSinkOperator<V> extends AbstractStreamOperator<Void>
   public void prepareSnapshotPreBarrier(long checkpointId) throws Exception {
     super.prepareSnapshotPreBarrier(checkpointId);
     V sentinel = barrierSentinelSupplier.apply(checkpointId);
-    channel.put(sentinel);
+    channel.putHighPriority(sentinel);
   }
 
   @Override
