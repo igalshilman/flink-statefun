@@ -64,8 +64,10 @@ public final class FeedbackChannel<T> implements Closeable {
     consumer.scheduleDrainAll();
   }
 
-  /** Adds the barrier sentinel into this channel. */
-  public void putBarrierSentinel(T value) {
+  /**
+   * Adds a feedback result into this channel, and require draining it with the highest priority.
+   */
+  public void putHighPriority(T value) {
     // A checkpoint barrier needs to be introduced into the underlying feedback queue.
     // Unlike the regular put method, this method would always schedule a drain operation,
     // and we do it with the highest priority.
