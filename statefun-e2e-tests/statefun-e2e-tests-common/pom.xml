@@ -28,7 +28,6 @@ under the License.
     <artifactId>statefun-e2e-tests-common</artifactId>
 
     <properties>
-        <testcontainers.version>1.12.5</testcontainers.version>
         <kafka.version>2.4.1</kafka.version>
     </properties>
 

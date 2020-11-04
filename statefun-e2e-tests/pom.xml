@@ -34,6 +34,10 @@ under the License.
         <module>statefun-exactly-once-remote-e2e</module>
     </modules>
 
+    <properties>
+        <testcontainers.version>1.12.5</testcontainers.version>
+    </properties>
+
     <build>
         <plugins>
             <plugin>
