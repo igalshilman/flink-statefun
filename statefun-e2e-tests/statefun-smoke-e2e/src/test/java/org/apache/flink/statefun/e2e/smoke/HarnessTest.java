@@ -46,16 +46,17 @@ public class HarnessTest {
     harness.withConfiguration("restart-strategy.fixed-delay.delay", "1sec");
     harness.withConfiguration("execution.checkpointing.interval", "2sec");
     harness.withConfiguration("execution.checkpointing.mode", "EXACTLY_ONCE");
-    harness.withConfiguration("execution.checkpointing.max-concurrent-checkpoints", "3");
+    harness.withConfiguration("execution.checkpointing.max-concurrent-checkpoints", "1");
     harness.withConfiguration("parallelism.default", "2");
     harness.withConfiguration("state.checkpoints.dir", "file:///tmp/checkpoints");
+    harness.withConfiguration("execution.checkpointing.unaligned", "true");
 
     // start the Protobuf server
     SimpleProtobufServer.StartedServer<Any> started = startProtobufServer();
 
     // configure test parameters.
     ModuleParameters parameters = new ModuleParameters();
-    parameters.setMaxFailures(1);
+    parameters.setMaxFailures(2);
     parameters.setMessageCount(100_000);
     parameters.setNumberOfFunctionInstances(128);
     parameters.setVerificationServerHost("localhost");

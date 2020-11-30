@@ -19,7 +19,9 @@
 package org.apache.flink.statefun.flink.core.feedback;
 
 import java.io.OutputStream;
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.function.Supplier;
@@ -29,12 +31,16 @@ import org.apache.flink.util.IOUtils;
 final class Checkpoints<T> implements AutoCloseable {
   private final Supplier<? extends FeedbackLogger<T>> feedbackLoggerFactory;
   private final TreeMap<Long, FeedbackLogger<T>> uncompletedCheckpoints = new TreeMap<>();
+  private final Set<Long> seenCheckpoints = new HashSet<>();
 
   Checkpoints(Supplier<? extends FeedbackLogger<T>> feedbackLoggerFactory) {
     this.feedbackLoggerFactory = Objects.requireNonNull(feedbackLoggerFactory);
   }
 
   public void startLogging(long checkpointId, OutputStream outputStream) {
+    if (seenCheckpoints.remove(checkpointId)) {
+      return;
+    }
     FeedbackLogger<T> logger = feedbackLoggerFactory.get();
     logger.startLogging(outputStream);
     uncompletedCheckpoints.put(checkpointId, logger);
@@ -49,6 +55,9 @@ final class Checkpoints<T> implements AutoCloseable {
   public void commitCheckpointsUntil(long checkpointId) {
     SortedMap<Long, FeedbackLogger<T>> completedCheckpoints =
         uncompletedCheckpoints.headMap(checkpointId, true);
+    if (!completedCheckpoints.containsKey(checkpointId)) {
+      seenCheckpoints.add(checkpointId);
+    }
     completedCheckpoints.values().forEach(FeedbackLogger::commit);
     completedCheckpoints.clear();
   }
