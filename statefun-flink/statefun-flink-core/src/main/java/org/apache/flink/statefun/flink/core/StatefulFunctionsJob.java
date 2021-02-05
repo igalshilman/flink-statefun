@@ -65,7 +65,7 @@ public class StatefulFunctionsJob {
 
     setDefaultContextClassLoaderIfAbsent();
 
-    env.getConfig().enableObjectReuse();
+    //    env.getConfig().enableObjectReuse();
 
     final StatefulFunctionsUniverse statefulFunctionsUniverse =
         StatefulFunctionsUniverses.get(

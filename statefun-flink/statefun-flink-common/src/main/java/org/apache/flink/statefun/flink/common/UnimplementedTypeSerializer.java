@@ -43,12 +43,14 @@ final class UnimplementedTypeSerializer<T> extends TypeSerializer<T> {
 
   @Override
   public T copy(T t) {
-    throw new UnsupportedOperationException();
+    return t;
+    //    throw new UnsupportedOperationException();
   }
 
   @Override
   public T copy(T t, T t1) {
-    throw new UnsupportedOperationException();
+    return t;
+    //    throw new UnsupportedOperationException();
   }
 
   @Override
