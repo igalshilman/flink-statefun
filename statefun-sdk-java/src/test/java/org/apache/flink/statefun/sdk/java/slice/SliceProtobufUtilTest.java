@@ -17,10 +17,10 @@
  */
 package org.apache.flink.statefun.sdk.java.slice;
 
+import static org.junit.Assert.assertSame;
+
 import com.google.protobuf.ByteString;
 import org.junit.Test;
-
-import static org.junit.Assert.assertSame;
 
 public class SliceProtobufUtilTest {
 
