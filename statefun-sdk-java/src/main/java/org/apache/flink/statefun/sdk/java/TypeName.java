@@ -17,6 +17,7 @@
  */
 package org.apache.flink.statefun.sdk.java;
 
+import com.google.protobuf.ByteString;
 import java.io.Serializable;
 import java.util.Objects;
 
@@ -35,6 +36,8 @@ public final class TypeName implements Serializable {
 
   private final String namespace;
   private final String type;
+  private final String typenameString;
+  private final ByteString typenameByteString;
 
   public static TypeName typeNameOf(String namespace, String name) {
     Objects.requireNonNull(namespace);
@@ -72,6 +75,9 @@ public final class TypeName implements Serializable {
   private TypeName(String namespace, String type) {
     this.namespace = Objects.requireNonNull(namespace);
     this.type = Objects.requireNonNull(type);
+    String typenameString = canonicalTypeNameString(namespace, type);
+    this.typenameString = typenameString;
+    this.typenameByteString = ByteString.copyFromUtf8(typenameString);
   }
 
   /**
@@ -118,6 +124,14 @@ public final class TypeName implements Serializable {
   }
 
   public String asTypeNameString() {
-    return namespace + "/" + type;
+    return typenameString;
+  }
+
+  ByteString typeNameByteString() {
+    return typenameByteString;
+  }
+
+  private static String canonicalTypeNameString(String namespace, String type) {
+    return namespace + '/' + type;
   }
 }
