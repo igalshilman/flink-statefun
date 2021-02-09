@@ -30,7 +30,6 @@ import org.apache.flink.statefun.sdk.java.slice.Slices;
 import org.apache.flink.statefun.sdk.types.generated.BooleanWrapper;
 import org.apache.flink.statefun.sdk.types.generated.DoubleWrapper;
 import org.apache.flink.statefun.sdk.types.generated.FloatWrapper;
-import org.apache.flink.statefun.sdk.types.generated.IntWrapper;
 import org.apache.flink.statefun.sdk.types.generated.LongWrapper;
 import org.apache.flink.statefun.sdk.types.generated.StringWrapper;
 
@@ -101,21 +100,9 @@ public final class Types {
   }
 
   private static final class LongTypeSerializer implements TypeSerializer<Long> {
-    private static final Slice[] CACHE;
-
-    static {
-      Slice[] cache = new Slice[4096];
-      for (int i = 0; i < cache.length; i++) {
-        cache[i] = toSlice(LongWrapper.newBuilder().setValue(i).build());
-      }
-      CACHE = cache;
-    }
 
     @Override
     public Slice serialize(Long element) {
-      if (element >= 0 && element < CACHE.length) {
-        return CACHE[element.intValue()];
-      }
       LongWrapper wrapper = LongWrapper.newBuilder().setValue(element).build();
       return toSlice(wrapper);
     }
@@ -193,34 +180,43 @@ public final class Types {
   }
 
   private static final class IntegerTypeSerializer implements TypeSerializer<Integer> {
-    // cache a small range of int slices.
-    private static final Slice[] CACHE;
-
-    static {
-      Slice[] cache = new Slice[4096];
-      for (int i = 0; i < cache.length; i++) {
-        cache[i] = toSlice(IntWrapper.newBuilder().setValue(i).build());
-      }
-      CACHE = cache;
-    }
 
     @Override
     public Slice serialize(Integer element) {
-      if (element >= 0 && element < CACHE.length) {
-        return CACHE[element];
-      }
-      IntWrapper wrapper = IntWrapper.newBuilder().setValue(element).build();
-      return toSlice(wrapper);
+      return serializeIntegerWrapperCompatibleInt(element);
     }
 
     @Override
     public Integer deserialize(Slice input) {
-      try {
-        IntWrapper wrapper = parseFrom(IntWrapper.parser(), input);
-        return wrapper.getValue();
-      } catch (InvalidProtocolBufferException e) {
-        throw new IllegalArgumentException(e);
+      return deserializeIntegerWrapperCompatibleInt(input);
+    }
+
+    private static final Slice EMPTY = Slices.wrap(new byte[0]);
+
+    private static Slice serializeIntegerWrapperCompatibleInt(int n) {
+      if (n == 0) {
+        return EMPTY;
       }
+      byte[] out = new byte[5];
+      out[0] = (byte) 13;
+      out[1] = (byte) (n & 0xFF);
+      out[2] = (byte) ((n >> 8) & 0xFF);
+      out[3] = (byte) ((n >> 16) & 0xFF);
+      out[4] = (byte) ((n >> 24) & 0xFF);
+      return Slices.wrap(out);
+    }
+
+    private static int deserializeIntegerWrapperCompatibleInt(Slice slice) {
+      if (slice.readableBytes() == 0) {
+        return 0;
+      }
+      if (slice.byteAt(0) != (byte) 13) {
+        throw new IllegalStateException("Not an IntWrapper");
+      }
+      return slice.byteAt(1) & 0xFF
+          | (slice.byteAt(2) & 0xFF) << 8
+          | (slice.byteAt(3) & 0xFF) << 16
+          | (slice.byteAt(4) & 0xFF) << 24;
     }
   }
 
@@ -249,7 +245,7 @@ public final class Types {
     private static final Slice TRUE_SLICE =
         toSlice(BooleanWrapper.newBuilder().setValue(true).build());
     private static final Slice FALSE_SLICE =
-        toSlice(BooleanWrapper.newBuilder().setValue(true).build());
+        toSlice(BooleanWrapper.newBuilder().setValue(false).build());
 
     @Override
     public Slice serialize(Boolean element) {
