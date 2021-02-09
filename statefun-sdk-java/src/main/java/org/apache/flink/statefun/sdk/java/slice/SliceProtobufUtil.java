@@ -23,7 +23,7 @@ import com.google.protobuf.Message;
 import com.google.protobuf.MoreByteStrings;
 import com.google.protobuf.Parser;
 
-public class SliceProtobufUtil {
+public final class SliceProtobufUtil {
   private SliceProtobufUtil() {}
 
   public static <T> T parseFrom(Parser<T> parser, Slice slice)
