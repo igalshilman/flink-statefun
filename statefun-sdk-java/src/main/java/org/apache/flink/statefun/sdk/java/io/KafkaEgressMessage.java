@@ -20,6 +20,7 @@ package org.apache.flink.statefun.sdk.java.io;
 import com.google.protobuf.ByteString;
 import java.util.Objects;
 import org.apache.flink.statefun.sdk.egress.generated.KafkaProducerRecord;
+import org.apache.flink.statefun.sdk.java.ApiExtension;
 import org.apache.flink.statefun.sdk.java.TypeName;
 import org.apache.flink.statefun.sdk.java.message.EgressMessage;
 import org.apache.flink.statefun.sdk.java.message.EgressMessageWrapper;
@@ -33,9 +34,9 @@ public final class KafkaEgressMessage {
   }
 
   public static final class Builder {
-    private static final ByteString KAFKA_PRODUCER_RECORD_TYPENAME =
-        ByteString.copyFromUtf8(
-            "type.googleapis.com/" + KafkaProducerRecord.getDescriptor().getFullName());
+    private static final TypeName KAFKA_PRODUCER_RECORD_TYPENAME =
+        TypeName.typeNameOf(
+            "type.googleapis.com", KafkaProducerRecord.getDescriptor().getFullName());
 
     private final TypeName targetEgressId;
     private String targetTopic;
@@ -90,7 +91,7 @@ public final class KafkaEgressMessage {
       KafkaProducerRecord record = builder.build();
       TypedValue typedValue =
           TypedValue.newBuilder()
-              .setTypenameBytes(KAFKA_PRODUCER_RECORD_TYPENAME)
+              .setTypenameBytes(ApiExtension.typeNameByteString(KAFKA_PRODUCER_RECORD_TYPENAME))
               .setValue(record.toByteString())
               .build();
 
