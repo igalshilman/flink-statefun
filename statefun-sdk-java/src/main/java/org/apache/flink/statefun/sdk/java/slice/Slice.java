@@ -33,6 +33,8 @@ public interface Slice {
 
   void copyTo(OutputStream outputStream) throws IOException;
 
+  byte byteAt(int position);
+
   ByteBuffer asReadOnlyByteBuffer();
 
   byte[] toByteArray();

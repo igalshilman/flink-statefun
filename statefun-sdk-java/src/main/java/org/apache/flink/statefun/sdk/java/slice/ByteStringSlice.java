@@ -60,6 +60,11 @@ final class ByteStringSlice implements Slice {
   }
 
   @Override
+  public byte byteAt(int position) {
+    return byteString.byteAt(position);
+  }
+
+  @Override
   public void copyTo(ByteBuffer buffer) {
     byteString.copyTo(buffer);
   }
