@@ -20,6 +20,7 @@ package org.apache.flink.statefun.sdk.java.message;
 import com.google.protobuf.ByteString;
 import java.util.Objects;
 import org.apache.flink.statefun.sdk.java.Address;
+import org.apache.flink.statefun.sdk.java.ApiExtension;
 import org.apache.flink.statefun.sdk.java.TypeName;
 import org.apache.flink.statefun.sdk.java.slice.Slice;
 import org.apache.flink.statefun.sdk.java.slice.SliceProtobufUtil;
@@ -92,16 +93,12 @@ public final class MessageBuilder {
   public <T> MessageBuilder withCustomType(Type<T> customType, T element) {
     Objects.requireNonNull(customType);
     Objects.requireNonNull(element);
-    try {
-      TypeSerializer<T> typeSerializer = customType.typeSerializer();
-      Slice slice = typeSerializer.serialize(element);
-      ByteString byteString = asByteString(slice);
-      builder.setTypename(customType.typeName().asTypeNameString());
-      builder.setValue(byteString);
-      return this;
-    } catch (Throwable throwable) {
-      throw new IllegalStateException(throwable);
-    }
+    TypeSerializer<T> typeSerializer = customType.typeSerializer();
+    builder.setTypenameBytes(ApiExtension.typeNameByteString(customType.typeName()));
+    Slice serialized = typeSerializer.serialize(element);
+    ByteString serializedByteString = SliceProtobufUtil.asByteString(serialized);
+    builder.setValue(serializedByteString);
+    return this;
   }
 
   public Message build() {
@@ -109,16 +106,8 @@ public final class MessageBuilder {
   }
 
   private static TypedValue.Builder typedValueBuilder(Message message) {
-    if (message instanceof MessageWrapper) {
-      MessageWrapper messageWrapper = (MessageWrapper) message;
-      return messageWrapper.typedValue().toBuilder();
-    }
-    return TypedValue.newBuilder()
-        .setTypename(message.valueTypeName().asTypeNameString())
-        .setValue(SliceProtobufUtil.asByteString(message.rawValue()));
-  }
-
-  private static ByteString asByteString(Slice slice) {
-    return SliceProtobufUtil.asByteString(slice);
+    ByteString typenameBytes = ApiExtension.typeNameByteString(message.valueTypeName());
+    ByteString valueBytes = SliceProtobufUtil.asByteString(message.rawValue());
+    return TypedValue.newBuilder().setTypenameBytes(typenameBytes).setValue(valueBytes);
   }
 }
