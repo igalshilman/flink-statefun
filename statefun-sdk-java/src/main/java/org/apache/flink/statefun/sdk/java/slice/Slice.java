@@ -27,6 +27,8 @@ public interface Slice {
 
   void copyTo(ByteBuffer target);
 
+  void copyTo(byte[] target);
+
   void copyTo(byte[] target, int targetOffset);
 
   void copyTo(OutputStream outputStream) throws IOException;

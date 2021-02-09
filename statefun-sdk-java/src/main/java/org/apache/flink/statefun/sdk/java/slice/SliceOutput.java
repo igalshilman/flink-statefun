@@ -30,8 +30,15 @@ public final class SliceOutput {
   }
 
   private SliceOutput(int initialSize) {
+    if (initialSize < 0) {
+      throw new IllegalArgumentException("initial size has to be non negative");
+    }
     this.buf = new byte[initialSize];
     this.position = 0;
+  }
+
+  public void write(byte[] buffer) {
+    write(buffer, 0, buffer.length);
   }
 
   public void write(byte[] buffer, int offset, int len) {
@@ -42,14 +49,14 @@ public final class SliceOutput {
     if (len < 0) {
       throw new IllegalArgumentException("Negative length " + len);
     }
-    ensureCapacity(position + len);
+    ensureCapacity(len);
     System.arraycopy(buffer, offset, buf, position, len);
     position += len;
   }
 
   public void write(ByteBuffer buffer) {
     int n = buffer.remaining();
-    ensureCapacity(position + n);
+    ensureCapacity(n);
     buffer.get(buf, position, n);
   }
 
@@ -65,7 +72,8 @@ public final class SliceOutput {
     position = 0;
   }
 
-  private void ensureCapacity(int requiredNewLength) {
+  private void ensureCapacity(final int bytesNeeded) {
+    final int requiredNewLength = position + bytesNeeded;
     if (requiredNewLength >= buf.length) {
       this.buf = Arrays.copyOf(buf, 2 * requiredNewLength);
     }

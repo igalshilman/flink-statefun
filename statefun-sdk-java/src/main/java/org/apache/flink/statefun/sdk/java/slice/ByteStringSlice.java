@@ -45,6 +45,11 @@ final class ByteStringSlice implements Slice {
   }
 
   @Override
+  public void copyTo(byte[] target) {
+    copyTo(target, 0);
+  }
+
+  @Override
   public void copyTo(byte[] target, int targetOffset) {
     byteString.copyTo(target, targetOffset);
   }
