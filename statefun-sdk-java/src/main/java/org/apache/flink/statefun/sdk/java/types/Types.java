@@ -51,6 +51,7 @@ public final class Types {
   public static final TypeName STRING_TYPENAME =
       TypeName.typeNameFromString("io.statefun.types/string");
 
+  // common characteristics
   private static final Set<TypeCharacteristics> IMMUTABLE_TYPE_CHARS =
       Collections.unmodifiableSet(EnumSet.of(TypeCharacteristics.IMMUTABLE_VALUES));
 
@@ -100,9 +101,21 @@ public final class Types {
   }
 
   private static final class LongTypeSerializer implements TypeSerializer<Long> {
+    private static final Slice[] CACHE;
+
+    static {
+      Slice[] cache = new Slice[4096];
+      for (int i = 0; i < cache.length; i++) {
+        cache[i] = toSlice(LongWrapper.newBuilder().setValue(i).build());
+      }
+      CACHE = cache;
+    }
 
     @Override
     public Slice serialize(Long element) {
+      if (element >= 0 && element < CACHE.length) {
+        return CACHE[element.intValue()];
+      }
       LongWrapper wrapper = LongWrapper.newBuilder().setValue(element).build();
       return toSlice(wrapper);
     }
@@ -180,9 +193,22 @@ public final class Types {
   }
 
   private static final class IntegerTypeSerializer implements TypeSerializer<Integer> {
+    // cache a small range of int slices.
+    private static final Slice[] CACHE;
+
+    static {
+      Slice[] cache = new Slice[4096];
+      for (int i = 0; i < cache.length; i++) {
+        cache[i] = toSlice(IntWrapper.newBuilder().setValue(i).build());
+      }
+      CACHE = cache;
+    }
 
     @Override
     public Slice serialize(Integer element) {
+      if (element >= 0 && element < CACHE.length) {
+        return CACHE[element];
+      }
       IntWrapper wrapper = IntWrapper.newBuilder().setValue(element).build();
       return toSlice(wrapper);
     }
@@ -220,11 +246,14 @@ public final class Types {
   }
 
   private static final class BooleanTypeSerializer implements TypeSerializer<Boolean> {
+    private static final Slice TRUE_SLICE =
+        toSlice(BooleanWrapper.newBuilder().setValue(true).build());
+    private static final Slice FALSE_SLICE =
+        toSlice(BooleanWrapper.newBuilder().setValue(true).build());
 
     @Override
     public Slice serialize(Boolean element) {
-      BooleanWrapper wrapper = BooleanWrapper.newBuilder().setValue(element).build();
-      return toSlice(wrapper);
+      return element ? TRUE_SLICE : FALSE_SLICE;
     }
 
     @Override
