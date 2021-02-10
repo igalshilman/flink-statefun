@@ -21,6 +21,7 @@ import static org.apache.flink.statefun.sdk.java.slice.SliceProtobufUtil.parseFr
 import static org.apache.flink.statefun.sdk.java.slice.SliceProtobufUtil.toSlice;
 
 import com.google.protobuf.InvalidProtocolBufferException;
+import com.google.protobuf.WireFormat;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Set;
@@ -30,6 +31,7 @@ import org.apache.flink.statefun.sdk.java.slice.Slices;
 import org.apache.flink.statefun.sdk.types.generated.BooleanWrapper;
 import org.apache.flink.statefun.sdk.types.generated.DoubleWrapper;
 import org.apache.flink.statefun.sdk.types.generated.FloatWrapper;
+import org.apache.flink.statefun.sdk.types.generated.IntWrapper;
 import org.apache.flink.statefun.sdk.types.generated.LongWrapper;
 import org.apache.flink.statefun.sdk.types.generated.StringWrapper;
 
@@ -78,6 +80,26 @@ public final class Types {
     return DoubleType.INSTANCE;
   }
 
+  /**
+   * Compute the Protobuf field tag, as specified by the Protobuf wire format. See {@linkplain
+   * WireFormat#makeTag(int, int)}}. NOTE: that, currently, for all StateFun provided wire types the
+   * tags should be 1 byte.
+   *
+   * @param fieldNumber the field number as specified in the message definition.
+   * @param wireType the field type as specified in the message definition.
+   * @return the field tag as a single byte.
+   */
+  private static byte protobufTagAsSingleByte(int fieldNumber, int wireType) {
+    int fieldTag = fieldNumber << 3 | wireType;
+    if (fieldTag < -127 || fieldTag > 127) {
+      throw new IllegalStateException(
+          "Protobuf Wrapper type compatibility is bigger than one byte.");
+    }
+    return (byte) fieldTag;
+  }
+
+  private static final Slice EMPTY_SLICE = Slices.wrap(new byte[] {});
+
   private static final class LongType implements Type<Long> {
 
     static final Type<Long> INSTANCE = new LongType();
@@ -103,18 +125,49 @@ public final class Types {
 
     @Override
     public Slice serialize(Long element) {
-      LongWrapper wrapper = LongWrapper.newBuilder().setValue(element).build();
-      return toSlice(wrapper);
+      return serializeLongWrapperCompatibleLong(element);
     }
 
     @Override
     public Long deserialize(Slice input) {
-      try {
-        LongWrapper longWrapper = parseFrom(LongWrapper.parser(), input);
-        return longWrapper.getValue();
-      } catch (InvalidProtocolBufferException e) {
-        throw new IllegalArgumentException(e);
+      return deserializeLongWrapperCompatibleLong(input);
+    }
+
+    private static final byte WRAPPER_TYPE_FIELD_TAG =
+        protobufTagAsSingleByte(LongWrapper.VALUE_FIELD_NUMBER, WireFormat.WIRETYPE_FIXED64);
+
+    private static Slice serializeLongWrapperCompatibleLong(long n) {
+      if (n == 0) {
+        return EMPTY_SLICE;
       }
+      byte[] out = new byte[9];
+      out[0] = (byte) 9;
+      out[1] = (byte) (n & 0xFF);
+      out[2] = (byte) ((n >> 8) & 0xFF);
+      out[3] = (byte) ((n >> 16) & 0xFF);
+      out[4] = (byte) ((n >> 24) & 0xFF);
+      out[5] = (byte) ((n >> 32) & 0xFF);
+      out[6] = (byte) ((n >> 40) & 0xFF);
+      out[7] = (byte) ((n >> 48) & 0xFF);
+      out[8] = (byte) ((n >> 56) & 0xFF);
+      return Slices.wrap(out);
+    }
+
+    private static long deserializeLongWrapperCompatibleLong(Slice slice) {
+      if (slice.readableBytes() == 0) {
+        return 0;
+      }
+      if (slice.byteAt(0) != WRAPPER_TYPE_FIELD_TAG) {
+        throw new IllegalStateException("Not a LongWrapper");
+      }
+      return slice.byteAt(1) & 0xFFL
+          | (slice.byteAt(2) & 0xFFL) << 8
+          | (slice.byteAt(3) & 0xFFL) << 16
+          | (slice.byteAt(4) & 0xFFL) << 24
+          | (slice.byteAt(5) & 0xFFL) << 32
+          | (slice.byteAt(6) & 0xFFL) << 40
+          | (slice.byteAt(7) & 0xFFL) << 48
+          | (slice.byteAt(8) & 0xFFL) << 56;
     }
   }
 
@@ -180,6 +233,8 @@ public final class Types {
   }
 
   private static final class IntegerTypeSerializer implements TypeSerializer<Integer> {
+    private static final byte WRAPPER_TYPE_FIELD_TYPE =
+        protobufTagAsSingleByte(IntWrapper.VALUE_FIELD_NUMBER, WireFormat.WIRETYPE_FIXED32);
 
     @Override
     public Slice serialize(Integer element) {
@@ -191,14 +246,12 @@ public final class Types {
       return deserializeIntegerWrapperCompatibleInt(input);
     }
 
-    private static final Slice EMPTY = Slices.wrap(new byte[0]);
-
     private static Slice serializeIntegerWrapperCompatibleInt(int n) {
       if (n == 0) {
-        return EMPTY;
+        return EMPTY_SLICE;
       }
       byte[] out = new byte[5];
-      out[0] = (byte) 13;
+      out[0] = WRAPPER_TYPE_FIELD_TYPE;
       out[1] = (byte) (n & 0xFF);
       out[2] = (byte) ((n >> 8) & 0xFF);
       out[3] = (byte) ((n >> 16) & 0xFF);
@@ -210,7 +263,7 @@ public final class Types {
       if (slice.readableBytes() == 0) {
         return 0;
       }
-      if (slice.byteAt(0) != (byte) 13) {
+      if (slice.byteAt(0) != WRAPPER_TYPE_FIELD_TYPE) {
         throw new IllegalStateException("Not an IntWrapper");
       }
       return slice.byteAt(1) & 0xFF
