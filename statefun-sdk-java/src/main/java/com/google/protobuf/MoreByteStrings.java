@@ -15,4 +15,8 @@ public class MoreByteStrings {
   public static ByteString wrap(ByteBuffer buffer) {
     return ByteString.wrap(buffer);
   }
+
+  public static ByteString concat(ByteString first, ByteString second) {
+    return first.concat(second);
+  }
 }
