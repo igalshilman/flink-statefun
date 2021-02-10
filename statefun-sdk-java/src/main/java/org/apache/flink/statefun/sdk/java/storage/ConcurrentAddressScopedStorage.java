@@ -31,7 +31,6 @@ import org.apache.flink.statefun.sdk.java.TypeName;
 import org.apache.flink.statefun.sdk.java.ValueSpec;
 import org.apache.flink.statefun.sdk.java.slice.Slice;
 import org.apache.flink.statefun.sdk.java.slice.SliceProtobufUtil;
-import org.apache.flink.statefun.sdk.java.slice.Slices;
 import org.apache.flink.statefun.sdk.java.types.Type;
 import org.apache.flink.statefun.sdk.java.types.TypeCharacteristics;
 import org.apache.flink.statefun.sdk.java.types.TypeSerializer;
@@ -320,7 +319,7 @@ public final class ConcurrentAddressScopedStorage implements AddressScopedStorag
     stateValues.forEach(
         (stateName, stateValueContext) -> {
           final TypedValue typedValue = stateValueContext.protocolValue().getStateValue();
-          final Slice valueSlice = Slices.wrap(typedValue.getValue().toByteArray());
+          final Slice valueSlice = SliceProtobufUtil.asSlice(typedValue.getValue());
           final Type<?> stateType = stateValueContext.spec().type();
           final Cell<?> cell =
               stateType.typeCharacteristics().contains(TypeCharacteristics.IMMUTABLE_VALUES)
