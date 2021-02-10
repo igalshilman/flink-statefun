@@ -23,6 +23,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import java.util.concurrent.ThreadLocalRandom;
 import org.apache.flink.statefun.sdk.java.slice.Slice;
 import org.apache.flink.statefun.sdk.java.slice.Slices;
+import org.apache.flink.statefun.sdk.types.generated.BooleanWrapper;
 import org.apache.flink.statefun.sdk.types.generated.IntWrapper;
 import org.apache.flink.statefun.sdk.types.generated.LongWrapper;
 import org.junit.Ignore;
@@ -85,6 +86,13 @@ public class SanityPrimitiveTypeTest {
   }
 
   @Test
+  public void testCompatibilityWithABooleanWrapper() throws InvalidProtocolBufferException {
+    TypeSerializer<Boolean> serializer = Types.booleanType().typeSerializer();
+    testCompatibilityWithABooleanWrapper(serializer, true);
+    testCompatibilityWithABooleanWrapper(serializer, false);
+  }
+
+  @Test
   public void testRandomCompatibilityWithALongWrapper() throws InvalidProtocolBufferException {
     ThreadLocalRandom random = ThreadLocalRandom.current();
     TypeSerializer<Long> serializer = Types.longType().typeSerializer();
@@ -100,6 +108,26 @@ public class SanityPrimitiveTypeTest {
     for (int expected = Integer.MIN_VALUE; expected != Integer.MAX_VALUE; expected++) {
       testCompatibilityWithAnIntegerWrapper(serializer, expected);
     }
+  }
+
+  private void testCompatibilityWithABooleanWrapper(
+      TypeSerializer<Boolean> serializer, boolean expected) throws InvalidProtocolBufferException {
+    // test round trip
+    final Slice serialized = serializer.serialize(expected);
+    final boolean got = serializer.deserialize(serialized);
+    assertEquals(expected, got);
+
+    // test that protobuf can parse what we wrote:
+    final BooleanWrapper wrapper = BooleanWrapper.parseFrom(serialized.asReadOnlyByteBuffer());
+    assertEquals(expected, wrapper.getValue());
+
+    // test that we can parse what protobuf wrote:
+    final Slice serializedByPb = Slices.wrap(wrapper.toByteArray());
+    final boolean gotPb = serializer.deserialize(serializedByPb);
+    assertEquals(gotPb, expected);
+
+    // test that pb byte representation is equal to ours:
+    assertEquals(serializedByPb.asReadOnlyByteBuffer(), serialized.asReadOnlyByteBuffer());
   }
 
   private void testCompatibilityWithAnIntegerWrapper(

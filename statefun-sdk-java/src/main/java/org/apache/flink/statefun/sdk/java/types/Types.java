@@ -299,6 +299,8 @@ public final class Types {
         toSlice(BooleanWrapper.newBuilder().setValue(true).build());
     private static final Slice FALSE_SLICE =
         toSlice(BooleanWrapper.newBuilder().setValue(false).build());
+    private static final byte WRAPPER_TYPE_TAG =
+        protobufTagAsSingleByte(BooleanWrapper.VALUE_FIELD_NUMBER, WireFormat.WIRETYPE_VARINT);
 
     @Override
     public Slice serialize(Boolean element) {
@@ -307,12 +309,15 @@ public final class Types {
 
     @Override
     public Boolean deserialize(Slice input) {
-      try {
-        BooleanWrapper wrapper = parseFrom(BooleanWrapper.parser(), input);
-        return wrapper.getValue();
-      } catch (InvalidProtocolBufferException e) {
-        throw new IllegalArgumentException(e);
+      if (input.readableBytes() == 0) {
+        return false;
       }
+      final byte tag = input.byteAt(0);
+      final byte value = input.byteAt(1);
+      if (tag != WRAPPER_TYPE_TAG || value != (byte) 1) {
+        throw new IllegalStateException("Not a BooleanWrapper value.");
+      }
+      return true;
     }
   }
 
