@@ -26,6 +26,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.locks.ReentrantLock;
 import org.apache.flink.statefun.sdk.java.AddressScopedStorage;
+import org.apache.flink.statefun.sdk.java.ApiExtension;
 import org.apache.flink.statefun.sdk.java.TypeName;
 import org.apache.flink.statefun.sdk.java.ValueSpec;
 import org.apache.flink.statefun.sdk.java.slice.Slice;
@@ -189,11 +190,11 @@ public final class ConcurrentAddressScopedStorage implements AddressScopedStorag
     public Optional<PersistedValueMutation> toProtocolValueMutation() {
       switch (status) {
         case MODIFIED:
-          final TypedValue newValue =
+          final TypedValue.Builder newValue =
               TypedValue.newBuilder()
-                  .setTypename(type.asTypeNameString())
-                  .setValue(SliceProtobufUtil.asByteString(serializer.serialize(cachedObject)))
-                  .build();
+                  .setTypenameBytes(ApiExtension.typeNameByteString(type))
+                  .setValue(SliceProtobufUtil.asByteString(serializer.serialize(cachedObject)));
+
           return Optional.of(
               PersistedValueMutation.newBuilder()
                   .setStateName(stateName)
@@ -282,11 +283,11 @@ public final class ConcurrentAddressScopedStorage implements AddressScopedStorag
     public Optional<PersistedValueMutation> toProtocolValueMutation() {
       switch (status) {
         case MODIFIED:
-          final TypedValue newValue =
+          final TypedValue.Builder newValue =
               TypedValue.newBuilder()
-                  .setTypename(type.asTypeNameString())
-                  .setValue(SliceProtobufUtil.asByteString(valueSlice))
-                  .build();
+                  .setTypenameBytes(ApiExtension.typeNameByteString(type))
+                  .setValue(SliceProtobufUtil.asByteString(valueSlice));
+
           return Optional.of(
               PersistedValueMutation.newBuilder()
                   .setStateName(stateName)
