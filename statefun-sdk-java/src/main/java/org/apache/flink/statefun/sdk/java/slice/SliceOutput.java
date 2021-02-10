@@ -37,6 +37,12 @@ public final class SliceOutput {
     this.position = 0;
   }
 
+  public void write(byte b) {
+    ensureCapacity(1);
+    buf[position] = b;
+    position++;
+  }
+
   public void write(byte[] buffer) {
     write(buffer, 0, buffer.length);
   }
@@ -58,6 +64,7 @@ public final class SliceOutput {
     int n = buffer.remaining();
     ensureCapacity(n);
     buffer.get(buf, position, n);
+    position += n;
   }
 
   public void write(Slice slice) {
@@ -68,8 +75,8 @@ public final class SliceOutput {
     return Slices.copyOf(buf, 0, position);
   }
 
-  public void reset() {
-    position = 0;
+  public Slice view() {
+    return Slices.wrap(buf, 0, position);
   }
 
   private void ensureCapacity(final int bytesNeeded) {
