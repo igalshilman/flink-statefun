@@ -25,6 +25,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.locks.ReentrantLock;
+
+import com.google.protobuf.ByteString;
 import org.apache.flink.statefun.sdk.java.AddressScopedStorage;
 import org.apache.flink.statefun.sdk.java.ApiExtension;
 import org.apache.flink.statefun.sdk.java.TypeName;
@@ -104,12 +106,12 @@ public final class ConcurrentAddressScopedStorage implements AddressScopedStorag
     Optional<FromFunction.PersistedValueMutation> toProtocolValueMutation();
 
     static <T> Cell<T> forImmutableType(
-        String stateName, TypeName type, Slice valueSlice, TypeSerializer<T> serializer) {
+        ByteString stateName, TypeName type, Slice valueSlice, TypeSerializer<T> serializer) {
       return new ImmutableTypeCell<>(stateName, type, valueSlice, serializer);
     }
 
     static <T> Cell<T> forMutableType(
-        String stateName, TypeName type, Slice valueSlice, TypeSerializer<T> serializer) {
+        ByteString stateName, TypeName type, Slice valueSlice, TypeSerializer<T> serializer) {
       return new MutableTypeCell<>(stateName, type, valueSlice, serializer);
     }
   }
@@ -118,7 +120,7 @@ public final class ConcurrentAddressScopedStorage implements AddressScopedStorag
     private final ReentrantLock lock = new ReentrantLock();
 
     private final TypeSerializer<T> serializer;
-    private final String stateName;
+    private final ByteString stateName;
     private final TypeName type;
     private final Slice initialValueSlice;
 
@@ -126,7 +128,7 @@ public final class ConcurrentAddressScopedStorage implements AddressScopedStorag
     private T cachedObject;
 
     private ImmutableTypeCell(
-        String stateName, TypeName type, Slice valueSlice, TypeSerializer<T> serializer) {
+        ByteString stateName, TypeName type, Slice valueSlice, TypeSerializer<T> serializer) {
       this.stateName = Objects.requireNonNull(stateName);
       this.type = Objects.requireNonNull(type);
       this.initialValueSlice = Objects.requireNonNull(valueSlice);
@@ -162,7 +164,7 @@ public final class ConcurrentAddressScopedStorage implements AddressScopedStorag
     public void set(T value) {
       if (value == null) {
         throw new IllegalStorageAccessException(
-            stateName, "Can not set state to NULL. Please use remove() instead.");
+            stateName.toStringUtf8(), "Can not set state to NULL. Please use remove() instead.");
       }
 
       lock.lock();
@@ -196,14 +198,14 @@ public final class ConcurrentAddressScopedStorage implements AddressScopedStorag
 
           return Optional.of(
               PersistedValueMutation.newBuilder()
-                  .setStateName(stateName)
+                  .setStateNameBytes(stateName)
                   .setMutationType(PersistedValueMutation.MutationType.MODIFY)
                   .setStateValue(newValue)
                   .build());
         case DELETED:
           return Optional.of(
               PersistedValueMutation.newBuilder()
-                  .setStateName(stateName)
+                  .setStateNameBytes(stateName)
                   .setMutationType(PersistedValueMutation.MutationType.DELETE)
                   .build());
         case UNMODIFIED:
@@ -218,14 +220,14 @@ public final class ConcurrentAddressScopedStorage implements AddressScopedStorag
     private final ReentrantLock lock = new ReentrantLock();
 
     private final TypeSerializer<T> serializer;
-    private final String stateName;
+    private final ByteString stateName;
     private final TypeName type;
 
     private Slice valueSlice;
     private CellStatus status = CellStatus.UNMODIFIED;
 
     private MutableTypeCell(
-        String stateName, TypeName type, Slice valueSlice, TypeSerializer<T> serializer) {
+        ByteString stateName, TypeName type, Slice valueSlice, TypeSerializer<T> serializer) {
       this.stateName = Objects.requireNonNull(stateName);
       this.type = Objects.requireNonNull(type);
       this.valueSlice = Objects.requireNonNull(valueSlice);
@@ -255,7 +257,7 @@ public final class ConcurrentAddressScopedStorage implements AddressScopedStorag
     public void set(T value) {
       if (value == null) {
         throw new IllegalStorageAccessException(
-            stateName, "Can not set state to NULL. Please use remove() instead.");
+            stateName.toStringUtf8(), "Can not set state to NULL. Please use remove() instead.");
       }
 
       lock.lock();
@@ -289,14 +291,14 @@ public final class ConcurrentAddressScopedStorage implements AddressScopedStorag
 
           return Optional.of(
               PersistedValueMutation.newBuilder()
-                  .setStateName(stateName)
+                  .setStateNameBytes(stateName)
                   .setMutationType(PersistedValueMutation.MutationType.MODIFY)
                   .setStateValue(newValue)
                   .build());
         case DELETED:
           return Optional.of(
               PersistedValueMutation.newBuilder()
-                  .setStateName(stateName)
+                  .setStateNameBytes(stateName)
                   .setMutationType(PersistedValueMutation.MutationType.DELETE)
                   .build());
         case UNMODIFIED:
@@ -324,9 +326,15 @@ public final class ConcurrentAddressScopedStorage implements AddressScopedStorag
           final Cell<?> cell =
               stateType.typeCharacteristics().contains(TypeCharacteristics.IMMUTABLE_VALUES)
                   ? Cell.forImmutableType(
-                      stateName, stateType.typeName(), valueSlice, stateType.typeSerializer())
+                      ApiExtension.stateNameByteString(stateValueContext.spec()),
+                      stateType.typeName(),
+                      valueSlice,
+                      stateType.typeSerializer())
                   : Cell.forMutableType(
-                      stateName, stateType.typeName(), valueSlice, stateType.typeSerializer());
+                      ApiExtension.stateNameByteString(stateValueContext.spec()),
+                      stateType.typeName(),
+                      valueSlice,
+                      stateType.typeSerializer());
           cells.put(stateName, cell);
         });
 

@@ -18,6 +18,7 @@
 
 package org.apache.flink.statefun.sdk.java;
 
+import com.google.protobuf.ByteString;
 import java.time.Duration;
 import java.util.Objects;
 import org.apache.flink.statefun.sdk.java.types.Type;
@@ -33,6 +34,7 @@ public final class ValueSpec<T> {
   private final String name;
   private final Expiration expiration;
   private final Type<T> type;
+  private final ByteString nameByteString;
 
   private ValueSpec(Untyped untyped, Type<T> type) {
     Objects.requireNonNull(untyped);
@@ -40,6 +42,7 @@ public final class ValueSpec<T> {
     this.name = untyped.stateName;
     this.expiration = untyped.expiration;
     this.type = Objects.requireNonNull(type);
+    this.nameByteString = ByteString.copyFromUtf8(untyped.stateName);
   }
 
   public String name() {
@@ -56,6 +59,10 @@ public final class ValueSpec<T> {
 
   public Type<T> type() {
     return type;
+  }
+
+  ByteString nameByteString() {
+    return nameByteString;
   }
 
   public static final class Untyped {
