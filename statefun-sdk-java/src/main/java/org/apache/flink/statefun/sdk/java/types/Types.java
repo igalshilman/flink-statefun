@@ -20,16 +20,16 @@ package org.apache.flink.statefun.sdk.java.types;
 import static org.apache.flink.statefun.sdk.java.slice.SliceProtobufUtil.parseFrom;
 import static org.apache.flink.statefun.sdk.java.slice.SliceProtobufUtil.toSlice;
 
+import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
+import com.google.protobuf.MoreByteStrings;
 import com.google.protobuf.WireFormat;
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Set;
 import org.apache.flink.statefun.sdk.java.TypeName;
 import org.apache.flink.statefun.sdk.java.slice.Slice;
-import org.apache.flink.statefun.sdk.java.slice.SliceOutput;
+import org.apache.flink.statefun.sdk.java.slice.SliceProtobufUtil;
 import org.apache.flink.statefun.sdk.java.slice.Slices;
 import org.apache.flink.statefun.sdk.types.generated.BooleanWrapper;
 import org.apache.flink.statefun.sdk.types.generated.DoubleWrapper;
@@ -206,20 +206,22 @@ public final class Types {
       if (element.isEmpty()) {
         return EMPTY_SLICE;
       }
-      byte[] utf8Bytes = element.getBytes(StandardCharsets.UTF_8);
-      SliceOutput output = SliceOutput.sliceOutput(1 + 2 + utf8Bytes.length);
+      ByteString utf8 = ByteString.copyFromUtf8(element);
+      byte[] header = new byte[1 + 5 + utf8.size()];
+      int position = 0;
       // write the field tag
-      output.write(STRING_WRAPPER_FIELD_TYPE);
+      header[position++] = STRING_WRAPPER_FIELD_TYPE;
       // write utf8 bytes.length as a VarInt.
-      int varIntLen = utf8Bytes.length;
+      int varIntLen = utf8.size();
       while ((varIntLen & -128) != 0) {
-        output.write((byte) (varIntLen & 127 | 128));
+        header[position++] = ((byte) (varIntLen & 127 | 128));
         varIntLen >>>= 7;
       }
-      output.write((byte) varIntLen);
-      // write the utf8 bytes.
-      output.write(utf8Bytes);
-      return output.view();
+      header[position++] = ((byte) varIntLen);
+      // concat header and the utf8 string bytes
+      ByteString headerBuf = MoreByteStrings.wrap(header, 0, position);
+      ByteString result = MoreByteStrings.concat(headerBuf, utf8);
+      return SliceProtobufUtil.asSlice(result);
     }
 
     @Override
@@ -227,27 +229,30 @@ public final class Types {
       if (input.readableBytes() == 0) {
         return "";
       }
-      ByteBuffer buf = ByteBuffer.wrap(input.toByteArray());
+      ByteString buf = SliceProtobufUtil.asByteString(input);
+      int position = 0;
       // read field tag
-      if (buf.get() != STRING_WRAPPER_FIELD_TYPE) {
+      if (buf.byteAt(position++) != STRING_WRAPPER_FIELD_TYPE) {
         throw new IllegalStateException("Not a StringWrapper");
       }
-      // read VarInt length
+      // read VarInt32 length
       int shift = 0;
       long varIntSize = 0;
       while (shift < 32) {
-        final byte b = buf.get();
+        final byte b = buf.byteAt(position++);
         varIntSize |= (long) (b & 0x7F) << shift;
         if ((b & 0x80) == 0) {
           break;
         }
         shift += 7;
       }
-      if (varIntSize < 0 || varIntSize > Integer.MAX_VALUE || varIntSize != buf.remaining()) {
+      // sanity checks
+      if (varIntSize < 0 || varIntSize > Integer.MAX_VALUE) {
         throw new IllegalStateException("Malformed VarInt");
       }
-      // create the utf8 string
-      return new String(buf.array(), buf.position(), (int) varIntSize, StandardCharsets.UTF_8);
+      final int endIndex = position + (int) varIntSize;
+      ByteString utf8Bytes = buf.substring(position, endIndex);
+      return utf8Bytes.toStringUtf8();
     }
   }
 
