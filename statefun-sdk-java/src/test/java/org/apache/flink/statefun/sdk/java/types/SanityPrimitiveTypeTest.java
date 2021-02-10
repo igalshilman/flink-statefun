@@ -20,12 +20,15 @@ package org.apache.flink.statefun.sdk.java.types;
 import static org.junit.Assert.assertEquals;
 
 import com.google.protobuf.InvalidProtocolBufferException;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ThreadLocalRandom;
 import org.apache.flink.statefun.sdk.java.slice.Slice;
 import org.apache.flink.statefun.sdk.java.slice.Slices;
 import org.apache.flink.statefun.sdk.types.generated.BooleanWrapper;
 import org.apache.flink.statefun.sdk.types.generated.IntWrapper;
 import org.apache.flink.statefun.sdk.types.generated.LongWrapper;
+import org.apache.flink.statefun.sdk.types.generated.StringWrapper;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -78,26 +81,37 @@ public class SanityPrimitiveTypeTest {
 
   @Test
   public void testRandomCompatibilityWithAnIntegerWrapper() throws InvalidProtocolBufferException {
-    ThreadLocalRandom random = ThreadLocalRandom.current();
     TypeSerializer<Integer> serializer = Types.integerType().typeSerializer();
     for (int i = 0; i < 1_000_000; i++) {
-      testCompatibilityWithAnIntegerWrapper(serializer, random.nextInt());
+      testCompatibilityWithWrapper(
+          serializer, IntWrapper::parseFrom, IntWrapper::getValue, IntWrapper::toByteArray, i);
     }
   }
 
   @Test
   public void testCompatibilityWithABooleanWrapper() throws InvalidProtocolBufferException {
     TypeSerializer<Boolean> serializer = Types.booleanType().typeSerializer();
-    testCompatibilityWithABooleanWrapper(serializer, true);
-    testCompatibilityWithABooleanWrapper(serializer, false);
+    testCompatibilityWithWrapper(
+        serializer,
+        BooleanWrapper::parseFrom,
+        BooleanWrapper::getValue,
+        BooleanWrapper::toByteArray,
+        true);
+
+    testCompatibilityWithWrapper(
+        serializer,
+        BooleanWrapper::parseFrom,
+        BooleanWrapper::getValue,
+        BooleanWrapper::toByteArray,
+        false);
   }
 
   @Test
   public void testRandomCompatibilityWithALongWrapper() throws InvalidProtocolBufferException {
-    ThreadLocalRandom random = ThreadLocalRandom.current();
     TypeSerializer<Long> serializer = Types.longType().typeSerializer();
-    for (int i = 0; i < 1_000_000; i++) {
-      testCompatibilityWithALongWrapper(serializer, random.nextLong());
+    for (long i = 0; i < 1_000_000; i++) {
+      testCompatibilityWithWrapper(
+          serializer, LongWrapper::parseFrom, LongWrapper::getValue, LongWrapper::toByteArray, i);
     }
   }
 
@@ -106,66 +120,63 @@ public class SanityPrimitiveTypeTest {
   public void testCompatibilityWithAnIntegerWrapper() throws InvalidProtocolBufferException {
     TypeSerializer<Integer> serializer = Types.integerType().typeSerializer();
     for (int expected = Integer.MIN_VALUE; expected != Integer.MAX_VALUE; expected++) {
-      testCompatibilityWithAnIntegerWrapper(serializer, expected);
+      testCompatibilityWithWrapper(
+          serializer,
+          IntWrapper::parseFrom,
+          IntWrapper::getValue,
+          IntWrapper::toByteArray,
+          expected);
     }
   }
 
-  private void testCompatibilityWithABooleanWrapper(
-      TypeSerializer<Boolean> serializer, boolean expected) throws InvalidProtocolBufferException {
-    // test round trip
-    final Slice serialized = serializer.serialize(expected);
-    final boolean got = serializer.deserialize(serialized);
-    assertEquals(expected, got);
+  @Test
+  public void testRandomCompatibilityWithStringWrapper() throws InvalidProtocolBufferException {
+    TypeSerializer<String> serializer = Types.stringType().typeSerializer();
+    ThreadLocalRandom random = ThreadLocalRandom.current();
+    for (int i = 0; i < 1_000; i++) {
+      int n = random.nextInt(4096);
+      byte[] buf = new byte[n];
+      random.nextBytes(buf);
+      String expected = new String(buf, StandardCharsets.UTF_8);
 
-    // test that protobuf can parse what we wrote:
-    final BooleanWrapper wrapper = BooleanWrapper.parseFrom(serialized.asReadOnlyByteBuffer());
-    assertEquals(expected, wrapper.getValue());
-
-    // test that we can parse what protobuf wrote:
-    final Slice serializedByPb = Slices.wrap(wrapper.toByteArray());
-    final boolean gotPb = serializer.deserialize(serializedByPb);
-    assertEquals(gotPb, expected);
-
-    // test that pb byte representation is equal to ours:
-    assertEquals(serializedByPb.asReadOnlyByteBuffer(), serialized.asReadOnlyByteBuffer());
+      testCompatibilityWithWrapper(
+          serializer,
+          StringWrapper::parseFrom,
+          StringWrapper::getValue,
+          StringWrapper::toByteArray,
+          expected);
+    }
   }
 
-  private void testCompatibilityWithAnIntegerWrapper(
-      TypeSerializer<Integer> serializer, int expected) throws InvalidProtocolBufferException {
-    // test round trip
-    final Slice serialized = serializer.serialize(expected);
-    final int got = serializer.deserialize(serialized);
-    assertEquals(expected, got);
-
-    // test that protobuf can parse what we wrote:
-    final IntWrapper wrapper = IntWrapper.parseFrom(serialized.asReadOnlyByteBuffer());
-    assertEquals(expected, wrapper.getValue());
-
-    // test that we can parse what protobuf wrote:
-    final Slice serializedByPb = Slices.wrap(wrapper.toByteArray());
-    final int gotPb = serializer.deserialize(serializedByPb);
-    assertEquals(gotPb, expected);
-
-    // test that pb byte representation is equal to ours:
-    assertEquals(serializedByPb.asReadOnlyByteBuffer(), serialized.asReadOnlyByteBuffer());
+  @FunctionalInterface
+  interface Fn<I, O> {
+    O apply(I input) throws InvalidProtocolBufferException;
   }
 
-  private void testCompatibilityWithALongWrapper(TypeSerializer<Long> serializer, long expected)
+  private static <T, W> void testCompatibilityWithWrapper(
+      TypeSerializer<T> serializer,
+      Fn<ByteBuffer, W> parseFrom,
+      Fn<W, T> getValue,
+      Fn<W, byte[]> toByteArray,
+      T expected)
       throws InvalidProtocolBufferException {
-    // test round trip
+    //
+    // test round trip with ourself.
+    //
     final Slice serialized = serializer.serialize(expected);
-    final long got = serializer.deserialize(serialized);
+    final T got = serializer.deserialize(serialized);
     assertEquals(expected, got);
-
+    //
     // test that protobuf can parse what we wrote:
-    final LongWrapper wrapper = LongWrapper.parseFrom(serialized.asReadOnlyByteBuffer());
-    assertEquals(expected, wrapper.getValue());
-
+    //
+    final W wrapper = parseFrom.apply(serialized.asReadOnlyByteBuffer());
+    assertEquals(expected, getValue.apply(wrapper));
+    //
     // test that we can parse what protobuf wrote:
-    final Slice serializedByPb = Slices.wrap(wrapper.toByteArray());
-    final long gotPb = serializer.deserialize(serializedByPb);
+    //
+    final Slice serializedByPb = Slices.wrap(toByteArray.apply(wrapper));
+    final T gotPb = serializer.deserialize(serializedByPb);
     assertEquals(gotPb, expected);
-
     // test that pb byte representation is equal to ours:
     assertEquals(serializedByPb.asReadOnlyByteBuffer(), serialized.asReadOnlyByteBuffer());
   }

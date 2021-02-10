@@ -22,11 +22,14 @@ import static org.apache.flink.statefun.sdk.java.slice.SliceProtobufUtil.toSlice
 
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.WireFormat;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Set;
 import org.apache.flink.statefun.sdk.java.TypeName;
 import org.apache.flink.statefun.sdk.java.slice.Slice;
+import org.apache.flink.statefun.sdk.java.slice.SliceOutput;
 import org.apache.flink.statefun.sdk.java.slice.Slices;
 import org.apache.flink.statefun.sdk.types.generated.BooleanWrapper;
 import org.apache.flink.statefun.sdk.types.generated.DoubleWrapper;
@@ -81,7 +84,7 @@ public final class Types {
   }
 
   /**
-   * Compute the Protobuf field tag, as specified by the Protobuf wire format. See {@linkplain
+   * Compute the Protobuf field tag, as specified by the Protobuf wire format. See {@code
    * WireFormat#makeTag(int, int)}}. NOTE: that, currently, for all StateFun provided wire types the
    * tags should be 1 byte.
    *
@@ -194,20 +197,57 @@ public final class Types {
 
   private static final class StringTypeSerializer implements TypeSerializer<String> {
 
+    private static final byte STRING_WRAPPER_FIELD_TYPE =
+        protobufTagAsSingleByte(
+            StringWrapper.VALUE_FIELD_NUMBER, WireFormat.WIRETYPE_LENGTH_DELIMITED);
+
     @Override
     public Slice serialize(String element) {
-      StringWrapper wrapper = StringWrapper.newBuilder().setValue(element).build();
-      return Slices.wrap(wrapper.toByteArray());
+      if (element.isEmpty()) {
+        return EMPTY_SLICE;
+      }
+      byte[] utf8Bytes = element.getBytes(StandardCharsets.UTF_8);
+      SliceOutput output = SliceOutput.sliceOutput(1 + 2 + utf8Bytes.length);
+      // write the field tag
+      output.write(STRING_WRAPPER_FIELD_TYPE);
+      // write utf8 bytes.length as a VarInt.
+      int varIntLen = utf8Bytes.length;
+      while ((varIntLen & -128) != 0) {
+        output.write((byte) (varIntLen & 127 | 128));
+        varIntLen >>>= 7;
+      }
+      output.write((byte) varIntLen);
+      // write the utf8 bytes.
+      output.write(utf8Bytes);
+      return output.view();
     }
 
     @Override
     public String deserialize(Slice input) {
-      try {
-        StringWrapper wrapper = parseFrom(StringWrapper.parser(), input);
-        return wrapper.getValue();
-      } catch (InvalidProtocolBufferException e) {
-        throw new IllegalArgumentException(e);
+      if (input.readableBytes() == 0) {
+        return "";
       }
+      ByteBuffer buf = ByteBuffer.wrap(input.toByteArray());
+      // read field tag
+      if (buf.get() != STRING_WRAPPER_FIELD_TYPE) {
+        throw new IllegalStateException("Not a StringWrapper");
+      }
+      // read VarInt length
+      int shift = 0;
+      long varIntSize = 0;
+      while (shift < 32) {
+        final byte b = buf.get();
+        varIntSize |= (long) (b & 0x7F) << shift;
+        if ((b & 0x80) == 0) {
+          break;
+        }
+        shift += 7;
+      }
+      if (varIntSize < 0 || varIntSize > Integer.MAX_VALUE || varIntSize != buf.remaining()) {
+        throw new IllegalStateException("Malformed VarInt");
+      }
+      // create the utf8 string
+      return new String(buf.array(), buf.position(), (int) varIntSize, StandardCharsets.UTF_8);
     }
   }
 
