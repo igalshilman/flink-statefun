@@ -1,5 +1,23 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.flink.statefun.sdk.java.handler;
 
+import static org.apache.flink.statefun.sdk.java.handler.ProtoUtils.getTypedValue;
 import static org.apache.flink.statefun.sdk.java.handler.ProtoUtils.protoAddressFromSdk;
 
 import com.sun.istack.internal.Nullable;
@@ -8,17 +26,12 @@ import java.util.Objects;
 import java.util.Optional;
 import org.apache.flink.statefun.sdk.java.Address;
 import org.apache.flink.statefun.sdk.java.AddressScopedStorage;
-import org.apache.flink.statefun.sdk.java.ApiExtension;
 import org.apache.flink.statefun.sdk.java.Context;
 import org.apache.flink.statefun.sdk.java.TypeName;
 import org.apache.flink.statefun.sdk.java.message.EgressMessage;
-import org.apache.flink.statefun.sdk.java.message.EgressMessageWrapper;
 import org.apache.flink.statefun.sdk.java.message.Message;
-import org.apache.flink.statefun.sdk.java.message.MessageWrapper;
-import org.apache.flink.statefun.sdk.java.slice.SliceProtobufUtil;
 import org.apache.flink.statefun.sdk.java.storage.ConcurrentAddressScopedStorage;
 import org.apache.flink.statefun.sdk.reqreply.generated.FromFunction;
-import org.apache.flink.statefun.sdk.reqreply.generated.TypedValue;
 
 final class ConcurrentContext implements Context {
   private final org.apache.flink.statefun.sdk.java.Address self;
@@ -31,9 +44,9 @@ final class ConcurrentContext implements Context {
       org.apache.flink.statefun.sdk.java.Address self,
       FromFunction.InvocationResponse.Builder responseBuilder,
       ConcurrentAddressScopedStorage storage) {
-    this.self = self;
-    this.responseBuilder = responseBuilder;
-    this.storage = storage;
+    this.self = Objects.requireNonNull(self);
+    this.responseBuilder = Objects.requireNonNull(responseBuilder);
+    this.storage = Objects.requireNonNull(storage);
   }
 
   @Override
@@ -100,25 +113,5 @@ final class ConcurrentContext implements Context {
   @Override
   public AddressScopedStorage storage() {
     return storage;
-  }
-
-  private static TypedValue getTypedValue(Message message) {
-    if (message instanceof MessageWrapper) {
-      return ((MessageWrapper) message).typedValue();
-    }
-    return TypedValue.newBuilder()
-        .setTypenameBytes(ApiExtension.typeNameByteString(message.valueTypeName()))
-        .setValue(SliceProtobufUtil.asByteString(message.rawValue()))
-        .build();
-  }
-
-  private static TypedValue getTypedValue(EgressMessage message) {
-    if (message instanceof EgressMessageWrapper) {
-      return ((EgressMessageWrapper) message).typedValue();
-    }
-    return TypedValue.newBuilder()
-        .setTypenameBytes(ApiExtension.typeNameByteString(message.egressMessageValueType()))
-        .setValue(SliceProtobufUtil.asByteString(message.egressMessageValueBytes()))
-        .build();
   }
 }
