@@ -22,5 +22,5 @@ import org.apache.flink.statefun.sdk.java.message.Message;
 
 public interface StatefulFunction {
 
-  CompletableFuture<?> apply(Context context, Message argument) throws Throwable;
+  CompletableFuture<Void> apply(Context context, Message argument) throws Throwable;
 }
