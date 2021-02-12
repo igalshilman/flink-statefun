@@ -198,6 +198,7 @@ public class ConcurrentAddressScopedStorageTest {
             .setStateValue(
                 TypedValue.newBuilder()
                     .setTypename(spec.type().typeName().asTypeNameString())
+                    .setHasValue(value != null)
                     .setValue(toByteString(spec.type(), value)))
             .build();
 
