@@ -31,7 +31,7 @@ public final class MessageWrapper implements Message {
   private final TypedValue typedValue;
   private final Address targetAddress;
 
-  MessageWrapper(Address targetAddress, TypedValue typedValue) {
+  public MessageWrapper(Address targetAddress, TypedValue typedValue) {
     this.targetAddress = Objects.requireNonNull(targetAddress);
     this.typedValue = Objects.requireNonNull(typedValue);
   }
@@ -124,7 +124,7 @@ public final class MessageWrapper implements Message {
     return SliceProtobufUtil.asSlice(typedValue.getValue());
   }
 
-  TypedValue typedValue() {
+  public TypedValue typedValue() {
     return typedValue;
   }
 }

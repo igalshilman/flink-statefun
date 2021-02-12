@@ -46,4 +46,8 @@ public final class EgressMessageWrapper implements EgressMessage {
   public Slice egressMessageValueBytes() {
     return SliceProtobufUtil.asSlice(typedValue.getValue());
   }
+
+  public TypedValue typedValue() {
+    return typedValue;
+  }
 }
