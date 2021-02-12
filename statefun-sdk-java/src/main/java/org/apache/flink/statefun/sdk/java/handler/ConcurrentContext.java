@@ -20,7 +20,6 @@ package org.apache.flink.statefun.sdk.java.handler;
 import static org.apache.flink.statefun.sdk.java.handler.ProtoUtils.getTypedValue;
 import static org.apache.flink.statefun.sdk.java.handler.ProtoUtils.protoAddressFromSdk;
 
-import com.sun.istack.internal.Nullable;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
@@ -38,7 +37,7 @@ final class ConcurrentContext implements Context {
   private final FromFunction.InvocationResponse.Builder responseBuilder;
   private final ConcurrentAddressScopedStorage storage;
 
-  @Nullable private Address caller;
+  private Address caller;
 
   public ConcurrentContext(
       org.apache.flink.statefun.sdk.java.Address self,
@@ -54,7 +53,7 @@ final class ConcurrentContext implements Context {
     return self;
   }
 
-  void setCaller(@Nullable Address address) {
+  void setCaller(Address address) {
     this.caller = address;
   }
 
