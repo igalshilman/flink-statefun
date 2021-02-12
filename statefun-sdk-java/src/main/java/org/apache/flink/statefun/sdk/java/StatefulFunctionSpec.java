@@ -17,18 +17,23 @@
  */
 package org.apache.flink.statefun.sdk.java;
 
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.function.Supplier;
 
 public final class StatefulFunctionSpec {
   private final TypeName typeName;
-  private final List<ValueSpec<?>> knownValues;
+  private final Map<String, ValueSpec<?>> knownValues;
   private final Supplier<? extends StatefulFunction> supplier;
+
+  public static Builder builder(TypeName typeName) {
+    return new Builder(typeName);
+  }
 
   private StatefulFunctionSpec(
       TypeName typeName,
-      List<ValueSpec<?>> knownValues,
+      Map<String, ValueSpec<?>> knownValues,
       Supplier<? extends StatefulFunction> supplier) {
     this.typeName = Objects.requireNonNull(typeName);
     this.supplier = Objects.requireNonNull(supplier);
@@ -39,11 +44,35 @@ public final class StatefulFunctionSpec {
     return typeName;
   }
 
-  public List<ValueSpec<?>> knownValues() {
+  public Map<String, ValueSpec<?>> knownValues() {
     return knownValues;
   }
 
   public Supplier<? extends StatefulFunction> supplier() {
     return supplier;
+  }
+
+  public static final class Builder {
+    private final TypeName typeName;
+    private final Map<String, ValueSpec<?>> knownValues = new HashMap<>();
+    private Supplier<? extends StatefulFunction> supplier;
+
+    private Builder(TypeName typeName) {
+      this.typeName = Objects.requireNonNull(typeName);
+    }
+
+    public Builder withValueSpec(ValueSpec<?> knownValue) {
+      this.knownValues.put(knownValue.name(), knownValue);
+      return this;
+    }
+
+    public Builder withSupplier(Supplier<? extends StatefulFunction> supplier) {
+      this.supplier = Objects.requireNonNull(supplier);
+      return this;
+    }
+
+    public StatefulFunctionSpec build() {
+      return new StatefulFunctionSpec(typeName, knownValues, supplier);
+    }
   }
 }
