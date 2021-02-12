@@ -61,8 +61,8 @@ public final class StatefulFunctionSpec {
       this.typeName = Objects.requireNonNull(typeName);
     }
 
-    public Builder withValueSpec(ValueSpec<?> knownValue) {
-      this.knownValues.put(knownValue.name(), knownValue);
+    public Builder withValueSpec(ValueSpec<?> valueSpec) {
+      knownValues.put(valueSpec.name(), valueSpec);
       return this;
     }
 
