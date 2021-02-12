@@ -20,13 +20,13 @@ package org.apache.flink.statefun.sdk.java.storage;
 
 import static org.apache.flink.statefun.sdk.java.storage.StateValueContexts.StateValueContext;
 
+import com.google.protobuf.ByteString;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.locks.ReentrantLock;
-
-import com.google.protobuf.ByteString;
+import java.util.function.Consumer;
 import org.apache.flink.statefun.sdk.java.AddressScopedStorage;
 import org.apache.flink.statefun.sdk.java.ApiExtension;
 import org.apache.flink.statefun.sdk.java.TypeName;
@@ -88,6 +88,10 @@ public final class ConcurrentAddressScopedStorage implements AddressScopedStorag
               + ", but was accessed as type "
               + descriptor.typeName());
     }
+  }
+
+  public void addMutations(Consumer<PersistedValueMutation> consumer) {
+    cells.values().forEach(cell -> cell.toProtocolValueMutation().ifPresent(consumer));
   }
 
   // ===============================================================================
