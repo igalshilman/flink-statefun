@@ -20,7 +20,6 @@ package org.apache.flink.statefun.sdk.java.handler;
 import static org.apache.flink.statefun.sdk.java.handler.MoreFutures.applySequentially;
 import static org.apache.flink.statefun.sdk.java.handler.ProtoUtils.sdkAddressFromProto;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -31,7 +30,6 @@ import org.apache.flink.statefun.sdk.java.TypeName;
 import org.apache.flink.statefun.sdk.java.ValueSpec;
 import org.apache.flink.statefun.sdk.java.message.MessageWrapper;
 import org.apache.flink.statefun.sdk.java.storage.ConcurrentAddressScopedStorage;
-import org.apache.flink.statefun.sdk.java.storage.IncompleteStateValuesException;
 import org.apache.flink.statefun.sdk.java.storage.StateValueContexts;
 import org.apache.flink.statefun.sdk.reqreply.generated.FromFunction;
 import org.apache.flink.statefun.sdk.reqreply.generated.ToFunction;
@@ -58,14 +56,15 @@ public class RequestReplyHandler {
     if (function == null) {
       throw new NullPointerException("supplier for " + self + " supplied NULL function.");
     }
-    Either<ConcurrentAddressScopedStorage, Set<ValueSpec<?>>> maybeStorage =
-        tryGetStorage(targetSpec, batchRequest.getStateList());
-    if (maybeStorage.right != null) {
+    StateValueContexts.ResolutionResult result =
+        StateValueContexts.resolve(targetSpec.knownValues(), batchRequest.getStateList());
+    if (result.hasMissingValues()) {
       // not enough information to compute this batch.
-      FromFunction res = buildIncompleteInvocationResponse(maybeStorage.right);
+      FromFunction res = buildIncompleteInvocationResponse(result.missingValues());
       return CompletableFuture.completedFuture(res);
     }
-    final ConcurrentAddressScopedStorage storage = maybeStorage.left;
+    final ConcurrentAddressScopedStorage storage =
+        new ConcurrentAddressScopedStorage(result.resolved());
     return executeBatch(batchRequest, self, storage, function);
   }
 
@@ -85,29 +84,6 @@ public class RequestReplyHandler {
             inputBatch.getInvocationsList(), invocation -> apply(function, context, invocation));
 
     return allDone.thenApply(unused -> finalizeResponse(storage, responseBuilder));
-  }
-
-  private static final class Either<L, R> {
-    final L left;
-    final R right;
-
-    public Either(L left, R right) {
-      this.left = left;
-      this.right = right;
-    }
-  }
-
-  private static Either<ConcurrentAddressScopedStorage, Set<ValueSpec<?>>> tryGetStorage(
-      StatefulFunctionSpec targetSpec, List<ToFunction.PersistedValue> actualStates) {
-    try {
-      Map<String, StateValueContexts.StateValueContext<?>> resolved =
-          StateValueContexts.resolve(targetSpec.knownValues(), actualStates);
-      ConcurrentAddressScopedStorage storage = new ConcurrentAddressScopedStorage(resolved);
-      return new Either<>(storage, null);
-    } catch (IncompleteStateValuesException e) {
-      Set<ValueSpec<?>> missing = e.getStatesWithMissingValue();
-      return new Either<>(null, missing);
-    }
   }
 
   private static FromFunction buildIncompleteInvocationResponse(Set<ValueSpec<?>> missing) {

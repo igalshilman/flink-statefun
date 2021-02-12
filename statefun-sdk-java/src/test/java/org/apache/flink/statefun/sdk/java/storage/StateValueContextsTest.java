@@ -23,7 +23,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.collection.IsMapContaining.hasKey;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsCollectionContaining.hasItem;
-import static org.junit.Assert.fail;
 
 import com.google.protobuf.ByteString;
 import java.util.ArrayList;
@@ -54,7 +53,7 @@ public final class StateValueContextsTest {
     providedProtocolValues.add(protocolValue("state-2", Types.booleanType(), true));
 
     final Map<String, StateValueContext<?>> resolvedStateValues =
-        StateValueContexts.resolve(registeredSpecs, providedProtocolValues);
+        StateValueContexts.resolve(registeredSpecs, providedProtocolValues).resolved();
 
     assertThat(resolvedStateValues.size(), is(2));
     assertThat(resolvedStateValues, hasKey("state-1"));
@@ -72,16 +71,12 @@ public final class StateValueContextsTest {
     final List<ToFunction.PersistedValue> providedProtocolValues = new ArrayList<>(1);
     providedProtocolValues.add(protocolValue("state-2", Types.booleanType(), true));
 
-    try {
-      StateValueContexts.resolve(registeredSpecs, providedProtocolValues);
-    } catch (IncompleteStateValuesException e) {
-      final Set<ValueSpec<?>> statesWithMissingValue = e.getStatesWithMissingValue();
-      assertThat(statesWithMissingValue.size(), is(2));
-      assertThat(statesWithMissingValue, hasItem(valueSpec("state-1", Types.integerType())));
-      assertThat(statesWithMissingValue, hasItem(valueSpec("state-3", Types.stringType())));
-      return;
-    }
-    fail("Should have thrown exception!");
+    final Set<ValueSpec<?>> statesWithMissingValue =
+        StateValueContexts.resolve(registeredSpecs, providedProtocolValues).missingValues();
+
+    assertThat(statesWithMissingValue.size(), is(2));
+    assertThat(statesWithMissingValue, hasItem(valueSpec("state-1", Types.integerType())));
+    assertThat(statesWithMissingValue, hasItem(valueSpec("state-3", Types.stringType())));
   }
 
   @Test
@@ -96,7 +91,7 @@ public final class StateValueContextsTest {
     providedProtocolValues.add(protocolValue("state-3", Types.stringType(), "ignore me!"));
 
     final Map<String, StateValueContext<?>> resolvedStateValues =
-        StateValueContexts.resolve(registeredSpecs, providedProtocolValues);
+        StateValueContexts.resolve(registeredSpecs, providedProtocolValues).resolved();
 
     assertThat(resolvedStateValues.size(), is(1));
     assertThat(resolvedStateValues, hasKey("state-1"));

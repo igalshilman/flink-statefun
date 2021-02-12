@@ -51,17 +51,38 @@ public final class StateValueContexts {
     }
   }
 
-  public static Map<String, StateValueContext<?>> resolve(
+  public static final class ResolutionResult {
+    private final Map<String, StateValueContext<?>> resolved;
+    private final Set<ValueSpec<?>> missingValues;
+
+    ResolutionResult(Map<String, StateValueContext<?>> resolved, Set<ValueSpec<?>> missingValues) {
+      this.resolved = resolved;
+      this.missingValues = missingValues;
+    }
+
+    public boolean hasMissingValues() {
+      return missingValues != null;
+    }
+
+    public Map<String, StateValueContext<?>> resolved() {
+      return resolved;
+    }
+
+    public Set<ValueSpec<?>> missingValues() {
+      return missingValues;
+    }
+  }
+
+  public static ResolutionResult resolve(
       Map<String, ValueSpec<?>> registeredSpecs,
-      List<ToFunction.PersistedValue> protocolProvidedValues)
-      throws IncompleteStateValuesException {
+      List<ToFunction.PersistedValue> protocolProvidedValues) {
     final Map<String, ToFunction.PersistedValue> providedValuesIndex =
         createStateValuesIndex(protocolProvidedValues);
 
     final Set<ValueSpec<?>> statesWithMissingValue =
         statesWithMissingValue(registeredSpecs, providedValuesIndex);
     if (!statesWithMissingValue.isEmpty()) {
-      throw new IncompleteStateValuesException(statesWithMissingValue);
+      return new ResolutionResult(null, statesWithMissingValue);
     }
 
     final Map<String, StateValueContext<?>> resolvedStateValues =
@@ -71,7 +92,7 @@ public final class StateValueContexts {
           final ToFunction.PersistedValue providedValue = providedValuesIndex.get(stateName);
           resolvedStateValues.put(stateName, new StateValueContext<>(spec, providedValue));
         });
-    return resolvedStateValues;
+    return new ResolutionResult(resolvedStateValues, null);
   }
 
   private static Map<String, ToFunction.PersistedValue> createStateValuesIndex(
