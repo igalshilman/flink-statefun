@@ -63,7 +63,7 @@ public class RequestReplyHandlerTest {
             .withInvocation(Types.stringType(), "Hello world")
             .build();
 
-    FromFunction response = handlerUnderTest.handle(request).join();
+    FromFunction response = handlerUnderTest.handleInternally(request).join();
 
     assertThat(response, notNullValue());
   }
@@ -76,7 +76,7 @@ public class RequestReplyHandlerTest {
             .withInvocation(Types.stringType(), "Hello world")
             .build();
 
-    FromFunction response = handlerUnderTest.handle(request).join();
+    FromFunction response = handlerUnderTest.handleInternally(request).join();
 
     assertThat(
         response.getIncompleteInvocationContext().getMissingValuesList(),
@@ -94,7 +94,7 @@ public class RequestReplyHandlerTest {
             .withInvocation(Types.stringType(), "c")
             .build();
 
-    FromFunction response = handlerUnderTest.handle(request).join();
+    FromFunction response = handlerUnderTest.handleInternally(request).join();
 
     assertThat(
         response.getInvocationResult().getStateMutationsList(),

@@ -20,6 +20,7 @@ package org.apache.flink.statefun.sdk.java.handler;
 import static org.apache.flink.statefun.sdk.java.handler.MoreFutures.applySequentially;
 import static org.apache.flink.statefun.sdk.java.handler.ProtoUtils.sdkAddressFromProto;
 
+import com.google.protobuf.InvalidProtocolBufferException;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -42,7 +43,23 @@ public class RequestReplyHandler {
     this.functionSpecs = functionSpecs;
   }
 
-  CompletableFuture<FromFunction> handle(ToFunction request) {
+  public CompletableFuture<byte[]> onRequestBytes(byte[] requestBody) {
+    ToFunction request = parse(requestBody);
+    CompletableFuture<FromFunction> response = handleInternally(request);
+    return response.thenApply(FromFunction::toByteArray);
+  }
+
+  private static ToFunction parse(byte[] requestBody) {
+    final ToFunction request;
+    try {
+      request = ToFunction.parseFrom(requestBody);
+    } catch (InvalidProtocolBufferException e) {
+      throw new IllegalStateException("Unable to parse the request body", e);
+    }
+    return request;
+  }
+
+  CompletableFuture<FromFunction> handleInternally(ToFunction request) {
     if (!request.hasInvocation()) {
       return CompletableFuture.completedFuture(FromFunction.getDefaultInstance());
     }
