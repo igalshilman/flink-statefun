@@ -52,6 +52,7 @@ public class TestUtils {
     Slice serializedValue = type.typeSerializer().serialize(value);
     return TypedValue.newBuilder()
         .setTypename(type.typeName().asTypeNameString())
+        .setHasValue(value != null)
         .setValue(SliceProtobufUtil.asByteString(serializedValue));
   }
 

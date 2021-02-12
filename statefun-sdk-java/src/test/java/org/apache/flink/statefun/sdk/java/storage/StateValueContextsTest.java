@@ -104,6 +104,7 @@ public final class StateValueContextsTest {
         .setStateValue(
             TypedValue.newBuilder()
                 .setTypename(type.typeName().asTypeNameString())
+                .setHasValue(value != null)
                 .setValue(toByteString(type, value)))
         .build();
   }
