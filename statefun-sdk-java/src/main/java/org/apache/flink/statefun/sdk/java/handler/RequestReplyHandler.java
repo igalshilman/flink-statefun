@@ -22,11 +22,13 @@ import static org.apache.flink.statefun.sdk.java.handler.ProtoUtils.sdkAddressFr
 
 import com.google.protobuf.InvalidProtocolBufferException;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import org.apache.flink.statefun.sdk.java.Address;
 import org.apache.flink.statefun.sdk.java.StatefulFunction;
 import org.apache.flink.statefun.sdk.java.StatefulFunctionSpec;
+import org.apache.flink.statefun.sdk.java.StatefulFunctions;
 import org.apache.flink.statefun.sdk.java.TypeName;
 import org.apache.flink.statefun.sdk.java.ValueSpec;
 import org.apache.flink.statefun.sdk.java.message.MessageWrapper;
@@ -39,11 +41,15 @@ import org.apache.flink.statefun.sdk.reqreply.generated.TypedValue;
 public class RequestReplyHandler {
   private final Map<TypeName, StatefulFunctionSpec> functionSpecs;
 
-  public RequestReplyHandler(Map<TypeName, StatefulFunctionSpec> functionSpecs) {
-    this.functionSpecs = functionSpecs;
+  public RequestReplyHandler(StatefulFunctions statefulFunctions) {
+    this(statefulFunctions.functionSpecs());
   }
 
-  public CompletableFuture<byte[]> onRequestBytes(byte[] requestBody) {
+  RequestReplyHandler(Map<TypeName, StatefulFunctionSpec> functionSpecs) {
+    this.functionSpecs = Objects.requireNonNull(functionSpecs);
+  }
+
+  public CompletableFuture<byte[]> handle(byte[] requestBody) {
     ToFunction request = parse(requestBody);
     CompletableFuture<FromFunction> response = handleInternally(request);
     return response.thenApply(FromFunction::toByteArray);
