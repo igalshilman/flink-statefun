@@ -30,8 +30,6 @@ public interface Context {
 
   void send(Message message);
 
-  void reply(Message message);
-
   void sendAfter(Duration duration, Message message);
 
   void send(EgressMessage message);
