@@ -144,7 +144,7 @@ public final class Types {
         return EMPTY_SLICE;
       }
       byte[] out = new byte[9];
-      out[0] = (byte) 9;
+      out[0] = WRAPPER_TYPE_FIELD_TAG;
       out[1] = (byte) (n & 0xFF);
       out[2] = (byte) ((n >> 8) & 0xFF);
       out[3] = (byte) ((n >> 16) & 0xFF);
