@@ -38,7 +38,7 @@ import org.apache.flink.statefun.sdk.reqreply.generated.FromFunction;
 import org.apache.flink.statefun.sdk.reqreply.generated.ToFunction;
 import org.junit.Test;
 
-public class RequestReplyHandlerTest {
+public class ConcurrentRequestReplyHandlerTest {
 
   private static final TypeName GREETER_TYPE = TypeName.typeNameFromString("example/greeter");
 
@@ -51,8 +51,8 @@ public class RequestReplyHandlerTest {
           .withSupplier(SimpleGreeter::new)
           .build();
 
-  private final RequestReplyHandler handlerUnderTest =
-      new RequestReplyHandler(singletonMap(GREETER_TYPE, GREET_FN_SPEC));
+  private final ConcurrentRequestReplyHandler handlerUnderTest =
+      new ConcurrentRequestReplyHandler(singletonMap(GREETER_TYPE, GREET_FN_SPEC));
 
   @Test
   public void simpleInvocationExample() {

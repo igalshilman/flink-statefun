@@ -19,22 +19,28 @@ package org.apache.flink.statefun.sdk.java;
 
 import java.util.HashMap;
 import java.util.Map;
+import org.apache.flink.statefun.sdk.java.handler.ConcurrentRequestReplyHandler;
+import org.apache.flink.statefun.sdk.java.handler.RequestReplyHandler;
 
 public class StatefulFunctions {
   private final Map<TypeName, StatefulFunctionSpec> specs = new HashMap<>();
 
-  public StatefulFunctions with(StatefulFunctionSpec.Builder builder) {
+  public StatefulFunctions withStatefulFunction(StatefulFunctionSpec.Builder builder) {
     StatefulFunctionSpec spec = builder.build();
     specs.put(spec.typeName(), spec);
     return this;
   }
 
-  public StatefulFunctions with(StatefulFunctionSpec spec) {
+  public StatefulFunctions withStatefulFunction(StatefulFunctionSpec spec) {
     specs.put(spec.typeName(), spec);
     return this;
   }
 
   public Map<TypeName, StatefulFunctionSpec> functionSpecs() {
     return specs;
+  }
+
+  public RequestReplyHandler requestReplyHandler() {
+    return new ConcurrentRequestReplyHandler(this);
   }
 }
