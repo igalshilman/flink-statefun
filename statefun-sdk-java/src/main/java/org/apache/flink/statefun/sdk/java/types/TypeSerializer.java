@@ -21,7 +21,7 @@ import org.apache.flink.statefun.sdk.java.slice.Slice;
 
 public interface TypeSerializer<T> {
 
-  Slice serialize(T value); // TODO: switch to ByteBuffer
+  Slice serialize(T value);
 
   T deserialize(Slice bytes);
 }
