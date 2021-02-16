@@ -47,4 +47,8 @@ public final class Slices {
   public static Slice copyOf(byte[] bytes, int offset, int len) {
     return wrap(ByteString.copyFrom(bytes, offset, len));
   }
+
+  public static Slice copyFromUtf8(String input) {
+    return wrap(ByteString.copyFromUtf8(input));
+  }
 }
