@@ -55,8 +55,12 @@ final class ByteStringSlice implements Slice {
   }
 
   @Override
-  public void copyTo(OutputStream outputStream) throws IOException {
-    byteString.writeTo(outputStream);
+  public void copyTo(OutputStream outputStream) {
+    try {
+      byteString.writeTo(outputStream);
+    } catch (IOException e) {
+      throw new IllegalStateException(e);
+    }
   }
 
   @Override

@@ -17,6 +17,8 @@
  */
 package org.apache.flink.statefun.sdk.java.slice;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Objects;
@@ -69,6 +71,21 @@ public final class SliceOutput {
 
   public void write(Slice slice) {
     write(slice.asReadOnlyByteBuffer());
+  }
+
+  public void writeFully(InputStream input) {
+    try {
+      int bytesRead;
+      do {
+        ensureCapacity(256);
+        bytesRead = input.read(buf, position, 256);
+        if (bytesRead > 0) {
+          position += bytesRead;
+        }
+      } while (bytesRead != -1);
+    } catch (IOException e) {
+      throw new IllegalStateException(e);
+    }
   }
 
   public Slice copyOf() {

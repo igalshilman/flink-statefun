@@ -19,6 +19,7 @@ package org.apache.flink.statefun.sdk.java.slice;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.MoreByteStrings;
+import java.io.InputStream;
 import java.nio.ByteBuffer;
 
 public final class Slices {
@@ -46,6 +47,12 @@ public final class Slices {
 
   public static Slice copyOf(byte[] bytes, int offset, int len) {
     return wrap(ByteString.copyFrom(bytes, offset, len));
+  }
+
+  public static Slice copyOf(InputStream inputStream, int expectedStreamSize) {
+    SliceOutput out = SliceOutput.sliceOutput(expectedStreamSize);
+    out.writeFully(inputStream);
+    return out.view();
   }
 
   public static Slice copyFromUtf8(String input) {

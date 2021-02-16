@@ -19,6 +19,8 @@ package org.apache.flink.statefun.sdk.java.slice;
 
 import static org.junit.Assert.assertArrayEquals;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -81,6 +83,30 @@ public class SliceOutputTest {
       Slice slice = sliceOutput.copyOf();
       assertArrayEquals(buf, slice.toByteArray());
     }
+  }
+
+  @Test
+  public void copyFromInputStreamRandomizedTest() {
+    byte[] expected = randomBuffer(ThreadLocalRandom.current(), 256);
+    ByteArrayInputStream input = new ByteArrayInputStream(expected);
+
+    Slice slice = Slices.copyOf(input, 0);
+
+    byte[] actual = slice.toByteArray();
+
+    assertArrayEquals(expected, actual);
+  }
+
+  @Test
+  public void toOutputStreamTest() {
+    byte[] expected = randomBuffer(ThreadLocalRandom.current(), 256);
+
+    Slice slice = Slices.wrap(expected);
+
+    ByteArrayOutputStream output = new ByteArrayOutputStream(expected.length);
+    slice.copyTo(output);
+
+    assertArrayEquals(expected, slice.toByteArray());
   }
 
   private static byte[] deleteFirstByte(byte[] slightlyBiggerBuf) {
