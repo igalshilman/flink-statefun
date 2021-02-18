@@ -78,11 +78,10 @@ public final class SliceOutput {
       int bytesRead;
       do {
         ensureCapacity(256);
-        bytesRead = input.read(buf, position, 256);
-        if (bytesRead > 0) {
-          position += bytesRead;
-        }
+        bytesRead = input.read(buf, position, remaining());
+        position += bytesRead;
       } while (bytesRead != -1);
+      position++; // compensate for the latest -1 addition.
     } catch (IOException e) {
       throw new IllegalStateException(e);
     }
@@ -94,6 +93,10 @@ public final class SliceOutput {
 
   public Slice view() {
     return Slices.wrap(buf, 0, position);
+  }
+
+  private int remaining() {
+    return buf.length - position;
   }
 
   private void ensureCapacity(final int bytesNeeded) {
