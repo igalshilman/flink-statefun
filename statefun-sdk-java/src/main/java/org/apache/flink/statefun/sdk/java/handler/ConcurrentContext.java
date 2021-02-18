@@ -38,7 +38,10 @@ import org.apache.flink.statefun.sdk.reqreply.generated.FromFunction;
  * <p>This context's life cycle is tied to a single batch request. It is constructed when a
  * {@linkplain org.apache.flink.statefun.sdk.reqreply.generated.ToFunction} message arrives, and it
  * carries enough context to compute an {@linkplain
- * org.apache.flink.statefun.sdk.reqreply.generated.FromFunction.InvocationResponse}.
+ * org.apache.flink.statefun.sdk.reqreply.generated.FromFunction.InvocationResponse}. Access to the
+ * send/sendAfter/sendEgress methods are synchronized with a @responseBuilder's lock, to prevent
+ * concurrent modification. When the last invocation of the batch completes successfully, a {@link
+ * #finalBuilder()} will be called. After that point no further operations are allowed.
  */
 final class ConcurrentContext implements Context {
   private final org.apache.flink.statefun.sdk.java.Address self;

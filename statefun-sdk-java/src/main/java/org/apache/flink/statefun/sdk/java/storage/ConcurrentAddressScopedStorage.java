@@ -21,14 +21,13 @@ package org.apache.flink.statefun.sdk.java.storage;
 import static org.apache.flink.statefun.sdk.java.storage.StateValueContexts.StateValueContext;
 
 import com.google.protobuf.ByteString;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import org.apache.flink.statefun.sdk.java.AddressScopedStorage;
-import org.apache.flink.statefun.sdk.java.TypeName;
 import org.apache.flink.statefun.sdk.java.ValueSpec;
 import org.apache.flink.statefun.sdk.java.slice.Slice;
 import org.apache.flink.statefun.sdk.java.slice.SliceProtobufUtil;
@@ -40,56 +39,65 @@ import org.apache.flink.statefun.sdk.reqreply.generated.TypedValue;
 
 public final class ConcurrentAddressScopedStorage implements AddressScopedStorage {
 
-  private final Map<String, Cell<?>> cells;
+  private final List<Cell<?>> cells;
 
-  public ConcurrentAddressScopedStorage(Map<String, StateValueContext<?>> stateValues) {
+  public ConcurrentAddressScopedStorage(List<StateValueContext<?>> stateValues) {
     this.cells = createCells(stateValues);
   }
 
   @Override
   public <T> Optional<T> get(ValueSpec<T> valueSpec) {
-    final Cell<T> cell = getCellOrThrow(valueSpec.name());
-    checkType(cell, valueSpec);
+    final Cell<T> cell = getCellOrThrow(valueSpec);
     return cell.get();
   }
 
   @Override
   public <T> void set(ValueSpec<T> valueSpec, T value) {
-    final Cell<T> cell = getCellOrThrow(valueSpec.name());
-    checkType(cell, valueSpec);
+    final Cell<T> cell = getCellOrThrow(valueSpec);
     cell.set(value);
   }
 
   @Override
   public <T> void remove(ValueSpec<T> valueSpec) {
-    final Cell<T> cell = getCellOrThrow(valueSpec.name());
-    checkType(cell, valueSpec);
+    final Cell<T> cell = getCellOrThrow(valueSpec);
     cell.remove();
   }
 
   @SuppressWarnings("unchecked")
-  private <T> Cell<T> getCellOrThrow(String stateName) {
-    final Cell<T> cell = (Cell<T>) cells.get(stateName);
-    if (cell == null) {
+  private <T> Cell<T> getCellOrThrow(ValueSpec<T> valueSpec) {
+    for (Cell<?> cell : cells) {
+      ValueSpec<?> thisSpec = cell.spec();
+      if (valueSpec == thisSpec) {
+        // fast path: the user used the same ValueSpec reference to declare the function
+        // and to index into the state.
+        return (Cell<T>) cell;
+      }
+      // slow path:
+      // 1) compare names:
+      String thisName = thisSpec.name();
+      if (!Objects.equals(thisName, valueSpec.name())) {
+        continue;
+      }
+      // 2) it is the same name, but is it the same type?
+      if (Objects.equals(thisSpec.typeName(), valueSpec.typeName())) {
+        return (Cell<T>) cell;
+      }
       throw new IllegalStorageAccessException(
-          stateName, "State does not exist; make sure that this state was registered.");
-    }
-    return cell;
-  }
-
-  private void checkType(Cell<?> cell, ValueSpec<?> descriptor) {
-    if (!cell.type().equals(descriptor.typeName())) {
-      throw new IllegalStorageAccessException(
-          descriptor.name(),
+          valueSpec.name(),
           "Accessed state with incorrect type; state type was registered as "
-              + cell.type()
+              + thisSpec.typeName()
               + ", but was accessed as type "
-              + descriptor.typeName());
+              + valueSpec.typeName());
     }
+    String stateName = valueSpec.name();
+    throw new IllegalStorageAccessException(
+        stateName, "State does not exist; make sure that this state was registered.");
   }
 
   public void addMutations(Consumer<PersistedValueMutation> consumer) {
-    cells.values().forEach(cell -> cell.toProtocolValueMutation().ifPresent(consumer));
+    for (Cell<?> cell : cells) {
+      cell.toProtocolValueMutation().ifPresent(consumer);
+    }
   }
 
   // ===============================================================================
@@ -103,9 +111,9 @@ public final class ConcurrentAddressScopedStorage implements AddressScopedStorag
 
     void remove();
 
-    TypeName type();
-
     Optional<FromFunction.PersistedValueMutation> toProtocolValueMutation();
+
+    ValueSpec<T> spec();
   }
 
   private static <T> Optional<T> tryDeserialize(
@@ -135,12 +143,7 @@ public final class ConcurrentAddressScopedStorage implements AddressScopedStorag
     public ImmutableTypeCell(ValueSpec<T> spec, TypedValue typedValue) {
       this.spec = spec;
       this.typedValue = typedValue;
-      this.serializer = spec.type().typeSerializer();
-    }
-
-    @Override
-    public TypeName type() {
-      return spec.type().typeName();
+      this.serializer = Objects.requireNonNull(spec.type().typeSerializer());
     }
 
     @Override
@@ -189,7 +192,7 @@ public final class ConcurrentAddressScopedStorage implements AddressScopedStorag
 
     @Override
     public Optional<PersistedValueMutation> toProtocolValueMutation() {
-      final String typeNameString = spec.type().typeName().asTypeNameString();
+      final String typeNameString = spec.typeName().asTypeNameString();
       switch (status) {
         case MODIFIED:
           final TypedValue.Builder newValue =
@@ -216,6 +219,11 @@ public final class ConcurrentAddressScopedStorage implements AddressScopedStorag
           throw new IllegalStateException("Unknown cell status: " + status);
       }
     }
+
+    @Override
+    public ValueSpec<T> spec() {
+      return spec;
+    }
   }
 
   private static final class MutableTypeCell<T> implements Cell<T> {
@@ -230,11 +238,6 @@ public final class ConcurrentAddressScopedStorage implements AddressScopedStorag
       this.spec = spec;
       this.typedValue = typedValue;
       this.serializer = Objects.requireNonNull(spec.type().typeSerializer());
-    }
-
-    @Override
-    public TypeName type() {
-      return spec.type().typeName();
     }
 
     @Override
@@ -303,6 +306,11 @@ public final class ConcurrentAddressScopedStorage implements AddressScopedStorag
           throw new IllegalStateException("Unknown cell status: " + status);
       }
     }
+
+    @Override
+    public ValueSpec<T> spec() {
+      return spec;
+    }
   }
 
   private enum CellStatus {
@@ -311,21 +319,20 @@ public final class ConcurrentAddressScopedStorage implements AddressScopedStorag
     DELETED
   }
 
-  private static Map<String, Cell<?>> createCells(Map<String, StateValueContext<?>> stateValues) {
-    final Map<String, Cell<?>> cells = new HashMap<>(stateValues.size());
+  private static List<Cell<?>> createCells(List<StateValueContext<?>> stateValues) {
+    final List<Cell<?>> cells = new ArrayList<>(stateValues.size());
 
-    stateValues.forEach(
-        (stateName, stateValueContext) -> {
-          final TypedValue typedValue = stateValueContext.protocolValue().getStateValue();
-          final ValueSpec<?> spec = stateValueContext.spec();
-          @SuppressWarnings({"unchecked", "rawtypes"})
-          final Cell<?> cell =
-              spec.type().typeCharacteristics().contains(TypeCharacteristics.IMMUTABLE_VALUES)
-                  ? new ImmutableTypeCell(spec, typedValue)
-                  : new MutableTypeCell(spec, typedValue);
+    for (StateValueContext<?> stateValueContext : stateValues) {
+      final TypedValue typedValue = stateValueContext.protocolValue().getStateValue();
+      final ValueSpec<?> spec = stateValueContext.spec();
+      @SuppressWarnings({"unchecked", "rawtypes"})
+      final Cell<?> cell =
+          spec.type().typeCharacteristics().contains(TypeCharacteristics.IMMUTABLE_VALUES)
+              ? new ImmutableTypeCell(spec, typedValue)
+              : new MutableTypeCell(spec, typedValue);
 
-          cells.put(stateName, cell);
-        });
+      cells.add(cell);
+    }
 
     return cells;
   }

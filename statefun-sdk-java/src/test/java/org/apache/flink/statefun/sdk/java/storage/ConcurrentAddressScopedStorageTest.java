@@ -25,8 +25,7 @@ import static org.hamcrest.core.Is.is;
 import com.google.protobuf.ByteString;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 import java.util.Optional;
 import org.apache.flink.statefun.sdk.java.AddressScopedStorage;
 import org.apache.flink.statefun.sdk.java.ValueSpec;
@@ -42,7 +41,7 @@ public class ConcurrentAddressScopedStorageTest {
     final ValueSpec<Integer> stateSpec1 = ValueSpec.named("state-1").withIntType();
     final ValueSpec<Boolean> stateSpec2 = ValueSpec.named("state-2").withBooleanType();
 
-    final Map<String, StateValueContext<?>> testStateValues =
+    final List<StateValueContext<?>> testStateValues =
         testStateValues(stateValue(stateSpec1, 91), stateValue(stateSpec2, true));
     final AddressScopedStorage storage = new ConcurrentAddressScopedStorage(testStateValues);
 
@@ -54,8 +53,7 @@ public class ConcurrentAddressScopedStorageTest {
   public void getNullValueCell() {
     final ValueSpec<Integer> stateSpec = ValueSpec.named("state").withIntType();
 
-    final Map<String, StateValueContext<?>> testStateValues =
-        testStateValues(stateValue(stateSpec, null));
+    final List<StateValueContext<?>> testStateValues = testStateValues(stateValue(stateSpec, null));
     final AddressScopedStorage storage = new ConcurrentAddressScopedStorage(testStateValues);
 
     assertThat(storage.get(stateSpec), is(Optional.empty()));
@@ -65,8 +63,7 @@ public class ConcurrentAddressScopedStorageTest {
   public void setCell() {
     final ValueSpec<Integer> stateSpec = ValueSpec.named("state").withIntType();
 
-    final Map<String, StateValueContext<?>> testStateValues =
-        testStateValues(stateValue(stateSpec, 91));
+    final List<StateValueContext<?>> testStateValues = testStateValues(stateValue(stateSpec, 91));
     final AddressScopedStorage storage = new ConcurrentAddressScopedStorage(testStateValues);
 
     storage.set(stateSpec, 1111);
@@ -79,7 +76,7 @@ public class ConcurrentAddressScopedStorageTest {
     final ValueSpec<TestMutableType.Type> stateSpec =
         ValueSpec.named("state").withCustomType(new TestMutableType());
 
-    final Map<String, StateValueContext<?>> testStateValues =
+    final List<StateValueContext<?>> testStateValues =
         testStateValues(stateValue(stateSpec, new TestMutableType.Type("hello")));
 
     final AddressScopedStorage storage = new ConcurrentAddressScopedStorage(testStateValues);
@@ -95,8 +92,7 @@ public class ConcurrentAddressScopedStorageTest {
   public void clearCell() {
     final ValueSpec<Integer> stateSpec = ValueSpec.named("state").withIntType();
 
-    final Map<String, StateValueContext<?>> testStateValues =
-        testStateValues(stateValue(stateSpec, 91));
+    List<StateValueContext<?>> testStateValues = testStateValues(stateValue(stateSpec, 91));
     final AddressScopedStorage storage = new ConcurrentAddressScopedStorage(testStateValues);
 
     storage.remove(stateSpec);
@@ -109,7 +105,7 @@ public class ConcurrentAddressScopedStorageTest {
     final ValueSpec<TestMutableType.Type> stateSpec =
         ValueSpec.named("state").withCustomType(new TestMutableType());
 
-    final Map<String, StateValueContext<?>> testStateValues =
+    List<StateValueContext<?>> testStateValues =
         testStateValues(stateValue(stateSpec, new TestMutableType.Type("hello")));
 
     final AddressScopedStorage storage = new ConcurrentAddressScopedStorage(testStateValues);
@@ -121,21 +117,24 @@ public class ConcurrentAddressScopedStorageTest {
 
   @Test(expected = IllegalStorageAccessException.class)
   public void getNonExistingCell() {
-    final AddressScopedStorage storage = new ConcurrentAddressScopedStorage(Collections.emptyMap());
+    final AddressScopedStorage storage =
+        new ConcurrentAddressScopedStorage(Collections.emptyList());
 
     storage.get(ValueSpec.named("doesn't-exist").withIntType());
   }
 
   @Test(expected = IllegalStorageAccessException.class)
   public void setNonExistingCell() {
-    final AddressScopedStorage storage = new ConcurrentAddressScopedStorage(Collections.emptyMap());
+    final AddressScopedStorage storage =
+        new ConcurrentAddressScopedStorage(Collections.emptyList());
 
     storage.set(ValueSpec.named("doesn't-exist").withIntType(), 999);
   }
 
   @Test(expected = IllegalStorageAccessException.class)
   public void clearNonExistingCell() {
-    final AddressScopedStorage storage = new ConcurrentAddressScopedStorage(Collections.emptyMap());
+    final AddressScopedStorage storage =
+        new ConcurrentAddressScopedStorage(Collections.emptyList());
 
     storage.remove(ValueSpec.named("doesn't-exist").withIntType());
   }
@@ -144,8 +143,7 @@ public class ConcurrentAddressScopedStorageTest {
   public void setToNull() {
     final ValueSpec<Integer> stateSpec = ValueSpec.named("state").withIntType();
 
-    final Map<String, StateValueContext<?>> testStateValues =
-        testStateValues(stateValue(stateSpec, 91));
+    List<StateValueContext<?>> testStateValues = testStateValues(stateValue(stateSpec, 91));
     final AddressScopedStorage storage = new ConcurrentAddressScopedStorage(testStateValues);
 
     storage.set(stateSpec, null);
@@ -155,8 +153,7 @@ public class ConcurrentAddressScopedStorageTest {
   public void getWithWrongType() {
     final ValueSpec<Integer> stateSpec = ValueSpec.named("state").withIntType();
 
-    final Map<String, StateValueContext<?>> testStateValues =
-        testStateValues(stateValue(stateSpec, 91));
+    final List<StateValueContext<?>> testStateValues = testStateValues(stateValue(stateSpec, 91));
     final AddressScopedStorage storage = new ConcurrentAddressScopedStorage(testStateValues);
 
     storage.get(ValueSpec.named("state").withBooleanType());
@@ -166,8 +163,7 @@ public class ConcurrentAddressScopedStorageTest {
   public void setWithWrongType() {
     final ValueSpec<Integer> stateSpec = ValueSpec.named("state").withIntType();
 
-    final Map<String, StateValueContext<?>> testStateValues =
-        testStateValues(stateValue(stateSpec, 91));
+    final List<StateValueContext<?>> testStateValues = testStateValues(stateValue(stateSpec, 91));
     final AddressScopedStorage storage = new ConcurrentAddressScopedStorage(testStateValues);
 
     storage.set(ValueSpec.named("state").withBooleanType(), true);
@@ -177,18 +173,14 @@ public class ConcurrentAddressScopedStorageTest {
   public void clearWithWrongType() {
     final ValueSpec<Integer> stateSpec = ValueSpec.named("state").withIntType();
 
-    final Map<String, StateValueContext<?>> testStateValues =
-        testStateValues(stateValue(stateSpec, 91));
+    final List<StateValueContext<?>> testStateValues = testStateValues(stateValue(stateSpec, 91));
     final AddressScopedStorage storage = new ConcurrentAddressScopedStorage(testStateValues);
 
     storage.remove(ValueSpec.named("state").withBooleanType());
   }
 
-  private static Map<String, StateValueContext<?>> testStateValues(
-      StateValueContext<?>... testValues) {
-    final Map<String, StateValueContext<?>> values = new HashMap<>(testValues.length);
-    Arrays.stream(testValues).forEach(value -> values.put(value.spec().name(), value));
-    return values;
+  private static List<StateValueContext<?>> testStateValues(StateValueContext<?>... testValues) {
+    return Arrays.asList(testValues);
   }
 
   private static <T> StateValueContext<T> stateValue(ValueSpec<T> spec, T value) {

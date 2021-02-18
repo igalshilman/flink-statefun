@@ -18,12 +18,10 @@
 
 package org.apache.flink.statefun.sdk.java.storage;
 
-import java.util.HashMap;
-import java.util.HashSet;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import org.apache.flink.statefun.sdk.java.ValueSpec;
 import org.apache.flink.statefun.sdk.reqreply.generated.ToFunction;
 
@@ -52,10 +50,11 @@ public final class StateValueContexts {
   }
 
   public static final class ResolutionResult {
-    private final Map<String, StateValueContext<?>> resolved;
-    private final Set<ValueSpec<?>> missingValues;
+    private final List<StateValueContext<?>> resolved;
+    private final List<ValueSpec<?>> missingValues;
 
-    ResolutionResult(Map<String, StateValueContext<?>> resolved, Set<ValueSpec<?>> missingValues) {
+    private ResolutionResult(
+        List<StateValueContext<?>> resolved, List<ValueSpec<?>> missingValues) {
       this.resolved = resolved;
       this.missingValues = missingValues;
     }
@@ -64,54 +63,67 @@ public final class StateValueContexts {
       return missingValues != null;
     }
 
-    public Map<String, StateValueContext<?>> resolved() {
+    public List<StateValueContext<?>> resolved() {
       return resolved;
     }
 
-    public Set<ValueSpec<?>> missingValues() {
+    public List<ValueSpec<?>> missingValues() {
       return missingValues;
     }
   }
 
+  /**
+   * Tries to resolve any registered states that are known to us by the {@link ValueSpec} with the
+   * states provided to us by the runtime.
+   */
   public static ResolutionResult resolve(
       Map<String, ValueSpec<?>> registeredSpecs,
       List<ToFunction.PersistedValue> protocolProvidedValues) {
-    final Map<String, ToFunction.PersistedValue> providedValuesIndex =
-        createStateValuesIndex(protocolProvidedValues);
 
-    final Set<ValueSpec<?>> statesWithMissingValue =
-        statesWithMissingValue(registeredSpecs, providedValuesIndex);
-    if (!statesWithMissingValue.isEmpty()) {
-      return new ResolutionResult(null, statesWithMissingValue);
+    // holds a set of missing ValueSpec's. a missing ValueSpec is a value spec that was
+    // registered by the user but wasn't sent to the SDK by the runtime.
+    // this can happen upon an initial request.
+    List<ValueSpec<?>> statesWithMissingValue =
+        null; // optimize for normal execution, where states aren't missing.
+
+    // holds the StateValueContext that will be used to serialize and deserialize user state.
+    final List<StateValueContext<?>> resolvedStateValues = new ArrayList<>(registeredSpecs.size());
+
+    for (ValueSpec<?> spec : registeredSpecs.values()) {
+      ToFunction.PersistedValue persistedValue =
+          findPersistedValueByName(protocolProvidedValues, spec.name());
+
+      if (persistedValue != null) {
+        resolvedStateValues.add(new StateValueContext<>(spec, persistedValue));
+      } else {
+        // oh no. the runtime doesn't know (yet) about a state that was registered by the user.
+        // we need to collect these.
+        statesWithMissingValue =
+            (statesWithMissingValue != null)
+                ? statesWithMissingValue
+                : new ArrayList<>(registeredSpecs.size());
+        statesWithMissingValue.add(spec);
+      }
     }
 
-    final Map<String, StateValueContext<?>> resolvedStateValues =
-        new HashMap<>(registeredSpecs.size());
-    registeredSpecs.forEach(
-        (stateName, spec) -> {
-          final ToFunction.PersistedValue providedValue = providedValuesIndex.get(stateName);
-          resolvedStateValues.put(stateName, new StateValueContext<>(spec, providedValue));
-        });
-    return new ResolutionResult(resolvedStateValues, null);
+    if (statesWithMissingValue == null) {
+      return new ResolutionResult(resolvedStateValues, null);
+    }
+    return new ResolutionResult(null, statesWithMissingValue);
   }
 
-  private static Map<String, ToFunction.PersistedValue> createStateValuesIndex(
-      List<ToFunction.PersistedValue> stateValues) {
-    final Map<String, ToFunction.PersistedValue> index = new HashMap<>(stateValues.size());
-    stateValues.forEach(value -> index.put(value.getStateName(), value));
-    return index;
-  }
-
-  private static Set<ValueSpec<?>> statesWithMissingValue(
-      Map<String, ValueSpec<?>> registeredSpecs,
-      Map<String, ToFunction.PersistedValue> providedValuesIndex) {
-    final Set<ValueSpec<?>> statesWithMissingValue = new HashSet<>();
-    registeredSpecs.forEach(
-        (stateName, spec) -> {
-          if (!providedValuesIndex.containsKey(stateName)) {
-            statesWithMissingValue.add(spec);
-          }
-        });
-    return statesWithMissingValue;
+  /**
+   * finds a {@linkplain org.apache.flink.statefun.sdk.reqreply.generated.ToFunction.PersistedValue}
+   * with a given name. The size of the list, in practice is expected to be very small (0-10) items.
+   * just use a plain linear search.
+   */
+  private static ToFunction.PersistedValue findPersistedValueByName(
+      List<ToFunction.PersistedValue> protocolProvidedValues, String name) {
+    for (ToFunction.PersistedValue value : protocolProvidedValues) {
+      if (Objects.equals(value.getStateName(), name)) {
+        return value;
+      }
+    }
+    return null;
   }
 }

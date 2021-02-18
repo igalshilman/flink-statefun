@@ -41,6 +41,6 @@ public class StatefulFunctions {
   }
 
   public RequestReplyHandler requestReplyHandler() {
-    return new ConcurrentRequestReplyHandler(this);
+    return new ConcurrentRequestReplyHandler(specs);
   }
 }

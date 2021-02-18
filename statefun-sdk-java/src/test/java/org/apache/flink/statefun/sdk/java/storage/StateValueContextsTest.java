@@ -20,7 +20,6 @@ package org.apache.flink.statefun.sdk.java.storage;
 
 import static org.apache.flink.statefun.sdk.java.storage.StateValueContexts.StateValueContext;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.collection.IsMapContaining.hasKey;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsCollectionContaining.hasItem;
 
@@ -29,7 +28,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.Objects;
 import org.apache.flink.statefun.sdk.java.ValueSpec;
 import org.apache.flink.statefun.sdk.java.types.Type;
 import org.apache.flink.statefun.sdk.java.types.Types;
@@ -37,6 +36,8 @@ import org.apache.flink.statefun.sdk.reqreply.generated.ToFunction;
 import org.apache.flink.statefun.sdk.reqreply.generated.TypedValue;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
+import org.hamcrest.Matchers;
+import org.hamcrest.TypeSafeDiagnosingMatcher;
 import org.hamcrest.TypeSafeMatcher;
 import org.junit.Test;
 
@@ -52,12 +53,12 @@ public final class StateValueContextsTest {
     providedProtocolValues.add(protocolValue("state-1", Types.integerType(), 66));
     providedProtocolValues.add(protocolValue("state-2", Types.booleanType(), true));
 
-    final Map<String, StateValueContext<?>> resolvedStateValues =
+    final List<StateValueContext<?>> resolvedStateValues =
         StateValueContexts.resolve(registeredSpecs, providedProtocolValues).resolved();
 
     assertThat(resolvedStateValues.size(), is(2));
-    assertThat(resolvedStateValues, hasKey("state-1"));
-    assertThat(resolvedStateValues, hasKey("state-2"));
+    assertThat(resolvedStateValues, hasItem(stateValueContextNamed("state-1")));
+    assertThat(resolvedStateValues, hasItem(stateValueContextNamed("state-2")));
   }
 
   @Test
@@ -71,7 +72,7 @@ public final class StateValueContextsTest {
     final List<ToFunction.PersistedValue> providedProtocolValues = new ArrayList<>(1);
     providedProtocolValues.add(protocolValue("state-2", Types.booleanType(), true));
 
-    final Set<ValueSpec<?>> statesWithMissingValue =
+    final List<ValueSpec<?>> statesWithMissingValue =
         StateValueContexts.resolve(registeredSpecs, providedProtocolValues).missingValues();
 
     assertThat(statesWithMissingValue.size(), is(2));
@@ -90,11 +91,12 @@ public final class StateValueContextsTest {
     providedProtocolValues.add(protocolValue("state-2", Types.booleanType(), true));
     providedProtocolValues.add(protocolValue("state-3", Types.stringType(), "ignore me!"));
 
-    final Map<String, StateValueContext<?>> resolvedStateValues =
+    final List<StateValueContext<?>> resolvedStateValues =
         StateValueContexts.resolve(registeredSpecs, providedProtocolValues).resolved();
 
     assertThat(resolvedStateValues.size(), is(1));
-    assertThat(resolvedStateValues, hasKey("state-1"));
+    ValueSpec<?> spec = resolvedStateValues.get(0).spec();
+    assertThat(spec.name(), Matchers.is("state-1"));
   }
 
   private static <T> ToFunction.PersistedValue protocolValue(
@@ -125,6 +127,24 @@ public final class StateValueContextsTest {
 
       @Override
       public void describeTo(Description description) {}
+    };
+  }
+
+  private static <T> Matcher<StateValueContext<T>> stateValueContextNamed(String name) {
+    return new TypeSafeDiagnosingMatcher<StateValueContext<T>>() {
+      @Override
+      protected boolean matchesSafely(StateValueContext<T> ctx, Description description) {
+        if (!Objects.equals(ctx.spec().name(), name)) {
+          description.appendText(ctx.spec().name());
+          return false;
+        }
+        return true;
+      }
+
+      @Override
+      public void describeTo(Description description) {
+        description.appendText("A StateValueContext named ").appendText(name);
+      }
     };
   }
 }
