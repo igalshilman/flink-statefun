@@ -30,7 +30,7 @@ public final class Slices {
   }
 
   public static Slice wrap(byte[] bytes) {
-    return wrap(MoreByteStrings.wrap(bytes, 0, bytes.length));
+    return wrap(MoreByteStrings.wrap(bytes));
   }
 
   private static Slice wrap(ByteString bytes) {
