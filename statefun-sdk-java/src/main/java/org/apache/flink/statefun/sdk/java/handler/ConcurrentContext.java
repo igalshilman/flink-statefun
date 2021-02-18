@@ -32,10 +32,19 @@ import org.apache.flink.statefun.sdk.java.message.Message;
 import org.apache.flink.statefun.sdk.java.storage.ConcurrentAddressScopedStorage;
 import org.apache.flink.statefun.sdk.reqreply.generated.FromFunction;
 
+/**
+ * A thread safe implementation of a {@linkplain Context}.
+ *
+ * <p>This context's life cycle is tied to a single batch request. It is constructed when a
+ * {@linkplain org.apache.flink.statefun.sdk.reqreply.generated.ToFunction} message arrives, and it
+ * carries enough context to compute an {@linkplain
+ * org.apache.flink.statefun.sdk.reqreply.generated.FromFunction.InvocationResponse}.
+ */
 final class ConcurrentContext implements Context {
   private final org.apache.flink.statefun.sdk.java.Address self;
   private final FromFunction.InvocationResponse.Builder responseBuilder;
   private final ConcurrentAddressScopedStorage storage;
+  private boolean noFurtherModificationsAllowed;
 
   private Address caller;
 
@@ -57,6 +66,13 @@ final class ConcurrentContext implements Context {
     this.caller = address;
   }
 
+  FromFunction.InvocationResponse.Builder finalBuilder() {
+    synchronized (responseBuilder) {
+      noFurtherModificationsAllowed = true;
+      return responseBuilder;
+    }
+  }
+
   @Override
   public Optional<Address> caller() {
     return Optional.ofNullable(caller);
@@ -66,12 +82,14 @@ final class ConcurrentContext implements Context {
   public void send(Message message) {
     Objects.requireNonNull(message);
 
-    FromFunction.Invocation.Builder outInvocation =
+    FromFunction.Invocation outInvocation =
         FromFunction.Invocation.newBuilder()
             .setArgument(getTypedValue(message))
-            .setTarget(protoAddressFromSdk(message.targetAddress()));
+            .setTarget(protoAddressFromSdk(message.targetAddress()))
+            .build();
 
     synchronized (responseBuilder) {
+      checkNotDone();
       responseBuilder.addOutgoingMessages(outInvocation);
     }
   }
@@ -81,13 +99,15 @@ final class ConcurrentContext implements Context {
     Objects.requireNonNull(duration);
     Objects.requireNonNull(message);
 
-    FromFunction.DelayedInvocation.Builder outInvocation =
+    FromFunction.DelayedInvocation outInvocation =
         FromFunction.DelayedInvocation.newBuilder()
             .setArgument(getTypedValue(message))
             .setTarget(protoAddressFromSdk(message.targetAddress()))
-            .setDelayInMs(duration.toMillis());
+            .setDelayInMs(duration.toMillis())
+            .build();
 
     synchronized (responseBuilder) {
+      checkNotDone();
       responseBuilder.addDelayedInvocations(outInvocation);
     }
   }
@@ -98,13 +118,15 @@ final class ConcurrentContext implements Context {
 
     TypeName target = message.targetEgressId();
 
-    FromFunction.EgressMessage.Builder outInvocation =
+    FromFunction.EgressMessage outInvocation =
         FromFunction.EgressMessage.newBuilder()
             .setArgument(getTypedValue(message))
             .setEgressNamespace(target.namespace())
-            .setEgressType(target.name());
+            .setEgressType(target.name())
+            .build();
 
     synchronized (responseBuilder) {
+      checkNotDone();
       responseBuilder.addOutgoingEgresses(outInvocation);
     }
   }
@@ -112,5 +134,11 @@ final class ConcurrentContext implements Context {
   @Override
   public AddressScopedStorage storage() {
     return storage;
+  }
+
+  private void checkNotDone() {
+    if (noFurtherModificationsAllowed) {
+      throw new IllegalStateException("Function has already completed its execution.");
+    }
   }
 }
