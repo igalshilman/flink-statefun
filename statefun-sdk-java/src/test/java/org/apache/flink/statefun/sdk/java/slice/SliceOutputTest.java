@@ -106,7 +106,7 @@ public class SliceOutputTest {
     ByteArrayOutputStream output = new ByteArrayOutputStream(expected.length);
     slice.copyTo(output);
 
-    assertArrayEquals(expected, slice.toByteArray());
+    assertArrayEquals(expected, output.toByteArray());
   }
 
   private static byte[] deleteFirstByte(byte[] slightlyBiggerBuf) {
