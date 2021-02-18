@@ -21,7 +21,7 @@ import java.util.Iterator;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
-public class MoreFutures {
+final class MoreFutures {
 
   @FunctionalInterface
   public interface Fn<I, O> {
@@ -58,8 +58,8 @@ public class MoreFutures {
     }
   }
 
-  private static CompletableFuture<Void> exceptional(Throwable cause) {
-    CompletableFuture<Void> e = new CompletableFuture<>();
+  static <T> CompletableFuture<T> exceptional(Throwable cause) {
+    CompletableFuture<T> e = new CompletableFuture<>();
     e.completeExceptionally(cause);
     return e;
   }
