@@ -110,12 +110,6 @@ public final class KinesisEgressMessage {
     }
 
     public EgressMessage build() {
-      if (targetStreamBytes == null) {
-        throw new IllegalStateException("A Kafka record requires a target topic.");
-      }
-      if (valueBytes == null) {
-        throw new IllegalStateException("A Kafka record requires value bytes");
-      }
       KinesisEgressRecord.Builder builder = KinesisEgressRecord.newBuilder();
       if (targetStreamBytes == null) {
         throw new IllegalStateException("Missing destination Kinesis stream");
