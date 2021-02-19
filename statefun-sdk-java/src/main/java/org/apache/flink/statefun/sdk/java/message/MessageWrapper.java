@@ -103,8 +103,9 @@ public final class MessageWrapper implements Message {
 
   @Override
   public <T> boolean is(Type<T> type) {
-    TypeName typeName = TypeName.typeNameFromString(typedValue.getTypename());
-    return Objects.equals(typeName, type.typeName());
+    String thisTypeNameString = typedValue.getTypename();
+    String thatTypeNameString = type.typeName().asTypeNameString();
+    return thisTypeNameString.equals(thatTypeNameString);
   }
 
   @Override
