@@ -64,22 +64,29 @@ public final class ConcurrentAddressScopedStorage implements AddressScopedStorag
   }
 
   @SuppressWarnings("unchecked")
-  private <T> Cell<T> getCellOrThrow(ValueSpec<T> valueSpec) {
+  private <T> Cell<T> getCellOrThrow(ValueSpec<T> runtimeSpec) {
+    // fast path: the user used the same ValueSpec reference to declare the function
+    // and to index into the state.
     for (Cell<?> cell : cells) {
-      ValueSpec<?> thisSpec = cell.spec();
-      if (valueSpec == thisSpec) {
-        // fast path: the user used the same ValueSpec reference to declare the function
-        // and to index into the state.
+      ValueSpec<?> registeredSpec = cell.spec();
+      if (runtimeSpec == registeredSpec) {
         return (Cell<T>) cell;
       }
-      // slow path:
-      // 1) compare names:
+    }
+    return slowGetCellOrThrow(runtimeSpec);
+  }
+
+  @SuppressWarnings("unchecked")
+  private <T> Cell<T> slowGetCellOrThrow(ValueSpec<T> valueSpec) {
+    // unlikely slow path: when the users used a different ValueSpec instance in registration
+    // and at runtime.
+    for (Cell<?> cell : cells) {
+      ValueSpec<?> thisSpec = cell.spec();
       String thisName = thisSpec.name();
-      if (!Objects.equals(thisName, valueSpec.name())) {
+      if (!thisName.equals(valueSpec.name())) {
         continue;
       }
-      // 2) it is the same name, but is it the same type?
-      if (Objects.equals(thisSpec.typeName(), valueSpec.typeName())) {
+      if (thisSpec.typeName().equals(valueSpec.typeName())) {
         return (Cell<T>) cell;
       }
       throw new IllegalStorageAccessException(
@@ -89,9 +96,8 @@ public final class ConcurrentAddressScopedStorage implements AddressScopedStorag
               + ", but was accessed as type "
               + valueSpec.typeName());
     }
-    String stateName = valueSpec.name();
     throw new IllegalStorageAccessException(
-        stateName, "State does not exist; make sure that this state was registered.");
+        valueSpec.name(), "State does not exist; make sure that this state was registered.");
   }
 
   public void addMutations(Consumer<PersistedValueMutation> consumer) {

@@ -19,6 +19,7 @@ package org.apache.flink.statefun.sdk.java;
 
 import java.time.Duration;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import org.apache.flink.statefun.sdk.java.message.EgressMessage;
 import org.apache.flink.statefun.sdk.java.message.Message;
 
@@ -35,4 +36,8 @@ public interface Context {
   void send(EgressMessage message);
 
   AddressScopedStorage storage();
+
+  default CompletableFuture<Void> done() {
+    return CompletableFuture.completedFuture(null);
+  }
 }
