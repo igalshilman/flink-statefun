@@ -23,12 +23,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import org.apache.flink.statefun.sdk.java.ValueSpec;
+import org.apache.flink.statefun.sdk.java.annotations.Internal;
 import org.apache.flink.statefun.sdk.reqreply.generated.ToFunction;
 
 /**
  * Utility for pairing registered {@link ValueSpec}s with values provided by the protocol's {@link
  * ToFunction} message.
  */
+@Internal
 public final class StateValueContexts {
 
   public static final class StateValueContext<T> {

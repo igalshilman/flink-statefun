@@ -22,7 +22,9 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.Message;
 import com.google.protobuf.MoreByteStrings;
 import com.google.protobuf.Parser;
+import org.apache.flink.statefun.sdk.java.annotations.Internal;
 
+@Internal
 public final class SliceProtobufUtil {
   private SliceProtobufUtil() {}
 

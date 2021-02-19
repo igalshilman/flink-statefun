@@ -29,6 +29,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import org.apache.flink.statefun.sdk.java.AddressScopedStorage;
 import org.apache.flink.statefun.sdk.java.ValueSpec;
+import org.apache.flink.statefun.sdk.java.annotations.Internal;
 import org.apache.flink.statefun.sdk.java.slice.Slice;
 import org.apache.flink.statefun.sdk.java.slice.SliceProtobufUtil;
 import org.apache.flink.statefun.sdk.java.types.TypeCharacteristics;
@@ -37,6 +38,7 @@ import org.apache.flink.statefun.sdk.reqreply.generated.FromFunction;
 import org.apache.flink.statefun.sdk.reqreply.generated.FromFunction.PersistedValueMutation;
 import org.apache.flink.statefun.sdk.reqreply.generated.TypedValue;
 
+@Internal
 public final class ConcurrentAddressScopedStorage implements AddressScopedStorage {
 
   private final List<Cell<?>> cells;

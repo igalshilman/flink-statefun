@@ -19,7 +19,9 @@
 package org.apache.flink.statefun.sdk.java;
 
 import com.google.protobuf.ByteString;
+import org.apache.flink.statefun.sdk.java.annotations.Internal;
 
+@Internal
 public final class ApiExtension {
 
   public static ByteString typeNameByteString(TypeName typeName) {
