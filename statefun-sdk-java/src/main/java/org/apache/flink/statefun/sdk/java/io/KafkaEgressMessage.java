@@ -24,6 +24,8 @@ import org.apache.flink.statefun.sdk.java.ApiExtension;
 import org.apache.flink.statefun.sdk.java.TypeName;
 import org.apache.flink.statefun.sdk.java.message.EgressMessage;
 import org.apache.flink.statefun.sdk.java.message.EgressMessageWrapper;
+import org.apache.flink.statefun.sdk.java.slice.Slice;
+import org.apache.flink.statefun.sdk.java.slice.SliceProtobufUtil;
 import org.apache.flink.statefun.sdk.reqreply.generated.TypedValue;
 
 public final class KafkaEgressMessage {
@@ -39,7 +41,7 @@ public final class KafkaEgressMessage {
             "type.googleapis.com", KafkaProducerRecord.getDescriptor().getFullName());
 
     private final TypeName targetEgressId;
-    private String targetTopic;
+    private ByteString targetTopic;
     private ByteString keyBytes;
     private ByteString value;
 
@@ -48,13 +50,7 @@ public final class KafkaEgressMessage {
     }
 
     public Builder withTopic(String topic) {
-      this.targetTopic = Objects.requireNonNull(topic);
-      return this;
-    }
-
-    public Builder withKey(byte[] key) {
-      Objects.requireNonNull(key);
-      this.keyBytes = ByteString.copyFrom(key);
+      this.targetTopic = ByteString.copyFromUtf8(topic);
       return this;
     }
 
@@ -64,9 +60,27 @@ public final class KafkaEgressMessage {
       return this;
     }
 
+    public Builder withKey(byte[] key) {
+      Objects.requireNonNull(key);
+      this.keyBytes = ByteString.copyFrom(key);
+      return this;
+    }
+
+    public Builder withKey(Slice slice) {
+      Objects.requireNonNull(slice);
+      this.keyBytes = SliceProtobufUtil.asByteString(slice);
+      return this;
+    }
+
     public Builder withUtf8Value(String value) {
       Objects.requireNonNull(value);
       this.value = ByteString.copyFromUtf8(value);
+      return this;
+    }
+
+    public Builder withValue(Slice slice) {
+      Objects.requireNonNull(value);
+      this.value = SliceProtobufUtil.asByteString(slice);
       return this;
     }
 
@@ -84,7 +98,7 @@ public final class KafkaEgressMessage {
         throw new IllegalStateException("A Kafka record requires value bytes");
       }
       KafkaProducerRecord.Builder builder =
-          KafkaProducerRecord.newBuilder().setTopic(targetTopic).setValueBytes(value);
+          KafkaProducerRecord.newBuilder().setTopicBytes(targetTopic).setValueBytes(value);
       if (keyBytes != null) {
         builder.setKeyBytes(keyBytes);
       }
