@@ -31,6 +31,7 @@ import org.apache.flink.statefun.sdk.java.StatefulFunction;
 import org.apache.flink.statefun.sdk.java.StatefulFunctionSpec;
 import org.apache.flink.statefun.sdk.java.TypeName;
 import org.apache.flink.statefun.sdk.java.ValueSpec;
+import org.apache.flink.statefun.sdk.java.annotations.Internal;
 import org.apache.flink.statefun.sdk.java.message.MessageWrapper;
 import org.apache.flink.statefun.sdk.java.slice.Slice;
 import org.apache.flink.statefun.sdk.java.slice.SliceProtobufUtil;
@@ -44,6 +45,7 @@ import org.apache.flink.statefun.sdk.reqreply.generated.TypedValue;
  * A threadsafe {@linkplain RequestReplyHandler}. This handler lifecycle is bound to the entire
  * program, and can be safely and concurrently used to handle {@linkplain ToFunction} requests.
  */
+@Internal
 public final class ConcurrentRequestReplyHandler implements RequestReplyHandler {
   private final Map<TypeName, StatefulFunctionSpec> functionSpecs;
 
