@@ -26,6 +26,8 @@ import org.apache.flink.statefun.sdk.java.message.EgressMessage;
 import org.apache.flink.statefun.sdk.java.message.EgressMessageWrapper;
 import org.apache.flink.statefun.sdk.java.slice.Slice;
 import org.apache.flink.statefun.sdk.java.slice.SliceProtobufUtil;
+import org.apache.flink.statefun.sdk.java.types.Type;
+import org.apache.flink.statefun.sdk.java.types.TypeSerializer;
 import org.apache.flink.statefun.sdk.reqreply.generated.TypedValue;
 
 public final class KinesisEgressMessage {
@@ -95,6 +97,11 @@ public final class KinesisEgressMessage {
       Objects.requireNonNull(value);
       this.valueBytes = SliceProtobufUtil.asByteString(value);
       return this;
+    }
+
+    public <T> Builder withValue(Type<T> type, T value) {
+      TypeSerializer<T> serializer = type.typeSerializer();
+      return withValue(serializer.serialize(value));
     }
 
     public Builder withUtf8ExplicitHashKey(String value) {

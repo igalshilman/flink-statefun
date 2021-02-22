@@ -26,6 +26,8 @@ import org.apache.flink.statefun.sdk.java.message.EgressMessage;
 import org.apache.flink.statefun.sdk.java.message.EgressMessageWrapper;
 import org.apache.flink.statefun.sdk.java.slice.Slice;
 import org.apache.flink.statefun.sdk.java.slice.SliceProtobufUtil;
+import org.apache.flink.statefun.sdk.java.types.Type;
+import org.apache.flink.statefun.sdk.java.types.TypeSerializer;
 import org.apache.flink.statefun.sdk.reqreply.generated.TypedValue;
 
 public final class KafkaEgressMessage {
@@ -72,6 +74,11 @@ public final class KafkaEgressMessage {
       return this;
     }
 
+    public <T> Builder withKey(Type<T> type, T value) {
+      TypeSerializer<T> serializer = type.typeSerializer();
+      return withKey(serializer.serialize(value));
+    }
+
     public Builder withUtf8Value(String value) {
       Objects.requireNonNull(value);
       this.value = ByteString.copyFromUtf8(value);
@@ -82,6 +89,11 @@ public final class KafkaEgressMessage {
       Objects.requireNonNull(value);
       this.value = SliceProtobufUtil.asByteString(slice);
       return this;
+    }
+
+    public <T> Builder withValue(Type<T> type, T value) {
+      TypeSerializer<T> serializer = type.typeSerializer();
+      return withValue(serializer.serialize(value));
     }
 
     public Builder withValue(byte[] value) {
