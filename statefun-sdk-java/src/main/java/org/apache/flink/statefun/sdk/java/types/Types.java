@@ -203,6 +203,15 @@ public final class Types {
 
     @Override
     public Slice serialize(String element) {
+      return serializeStringWrapperCompatibleString(element);
+    }
+
+    @Override
+    public String deserialize(Slice input) {
+      return deserializeStringWrapperCompatibleString(input);
+    }
+
+    private static Slice serializeStringWrapperCompatibleString(String element) {
       if (element.isEmpty()) {
         return EMPTY_SLICE;
       }
@@ -224,8 +233,7 @@ public final class Types {
       return SliceProtobufUtil.asSlice(result);
     }
 
-    @Override
-    public String deserialize(Slice input) {
+    private static String deserializeStringWrapperCompatibleString(Slice input) {
       if (input.readableBytes() == 0) {
         return "";
       }
